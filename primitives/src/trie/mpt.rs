@@ -26,7 +26,12 @@ use alloy_primitives::B256;
 use alloy_rlp::Encodable;
 use rlp::{Decodable, DecoderError, Prototype, Rlp};
 use serde::{Deserialize, Serialize};
-use thiserror::Error as ThisError;
+
+use alloc::vec::Vec;
+use alloc::vec;
+use alloc::string::String;
+use crate::alloc::string::ToString;
+use alloc::format;
 
 use crate::{keccak::keccak, trie::EMPTY_ROOT, RlpBytes};
 
@@ -52,23 +57,25 @@ pub struct MptNode {
 /// These errors cover various scenarios that can occur during trie operations, such as
 /// encountering unresolved nodes, finding values in branches where they shouldn't be, and
 /// issues related to RLP (Recursive Length Prefix) encoding and decoding.
-#[derive(Debug, ThisError)]
+#[derive(Debug, /* ThisError */)]
 pub enum Error {
     /// Triggered when an operation reaches an unresolved node. The associated `B256`
     /// value provides details about the unresolved node.
-    #[error("reached an unresolved node: {0:#}")]
+    // #[error("reached an unresolved node: {0:#}")]
     NodeNotResolved(B256),
     /// Occurs when a value is unexpectedly found in a branch node.
-    #[error("branch node with value")]
+    // #[error("branch node with value")]
     ValueInBranch,
     /// Represents errors related to the RLP encoding and decoding using the `alloy_rlp`
     /// library.
-    #[error("RLP error")]
-    Rlp(#[from] alloy_rlp::Error),
+    // #[error("RLP error")]
+    Rlp(alloy_rlp::Error),
     /// Represents errors related to the RLP encoding and decoding, specifically legacy
     /// errors.
-    #[error("RLP error")]
-    LegacyRlp(#[from] DecoderError),
+    // #[error("RLP error")]
+    LegacyRlp(DecoderError),
+
+    RlpPlaceholder,
 }
 
 /// Represents the various types of data that can be stored within a node in the sparse
@@ -262,7 +269,7 @@ impl MptNode {
     /// This method allows for the deserialization of a previously serialized [MptNode].
     #[inline]
     pub fn decode(bytes: impl AsRef<[u8]>) -> Result<MptNode, Error> {
-        rlp::decode(bytes.as_ref()).map_err(Error::from)
+        rlp::decode(bytes.as_ref()).map_err(|e| Error::RlpPlaceholder)
     }
 
     /// Retrieves the underlying data of the node.
@@ -333,6 +340,7 @@ impl MptNode {
             MptNodeReference::Digest(_) => 1 + 32,
         }
     }
+    
 
     fn calc_reference(&self) -> MptNodeReference {
         match &self.data {
@@ -395,7 +403,7 @@ impl MptNode {
     #[inline]
     pub fn get_rlp<T: alloy_rlp::Decodable>(&self, key: &[u8]) -> Result<Option<T>, Error> {
         match self.get(key)? {
-            Some(mut bytes) => Ok(Some(T::decode(&mut bytes)?)),
+            Some(mut bytes) => Ok(Some(T::decode(&mut bytes).unwrap())),
             None => Ok(None),
         }
     }

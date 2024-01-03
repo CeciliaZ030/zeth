@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::cmp::Ordering;
-
 use alloy_primitives::{BlockNumber, Bytes, B256};
 use alloy_rlp::{Decodable, Encodable};
 use alloy_rlp_derive::{RlpDecodable, RlpEncodable};
 use serde::{Deserialize, Serialize};
 
 pub type RawTransaction = Bytes;
+
+use core::cmp::Ordering;
+use alloc::vec::Vec;
 
 /// A batch contains information to build one Optimism block.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

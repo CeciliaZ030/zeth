@@ -17,6 +17,8 @@ use alloy_rlp::Encodable;
 use alloy_rlp_derive::RlpEncodable;
 use serde::{Deserialize, Serialize};
 
+use alloc::vec::Vec;
+
 /// Represents an Ethereum log entry.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, RlpEncodable)]
 pub struct Log {

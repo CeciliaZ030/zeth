@@ -15,7 +15,7 @@
 use alloy_primitives::{Address, StorageKey};
 use alloy_rlp_derive::{RlpEncodable, RlpEncodableWrapper};
 use serde::{Deserialize, Serialize};
-
+use alloc::vec::Vec;
 /// Represents an access list as defined in EIP-2930.
 ///
 /// An access list is a list of addresses and storage keys that a transaction will access,

@@ -22,6 +22,7 @@ use k256::{
     PublicKey as K256PublicKey,
 };
 use serde::{Deserialize, Serialize};
+use alloc::vec::Vec;
 
 use super::signature::TxSignature;
 use crate::{access_list::AccessList, keccak::keccak, transactions::TxEssence};

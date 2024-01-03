@@ -11,8 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#![no_std]
 
 extern crate core;
+extern crate alloc;
 
 pub mod access_list;
 pub mod block;
@@ -21,6 +23,8 @@ pub mod receipt;
 pub mod transactions;
 pub mod trie;
 pub mod withdrawal;
+
+use alloc::vec::Vec;
 
 #[cfg(feature = "ethers")]
 pub mod ethers;

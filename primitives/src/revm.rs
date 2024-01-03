@@ -21,6 +21,7 @@ use crate::{
     access_list::{AccessList, AccessListItem},
     receipt::Log,
 };
+use alloc::vec::Vec;
 
 /// Provides a conversion from [AccessListItem] to a tuple of `Address` and a vector of
 /// `U256`.
