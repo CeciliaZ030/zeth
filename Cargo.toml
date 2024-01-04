@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "guests",
-    "host",
+    # "host",
     "lib",
     "primitives",
     "testing/ef-tests"
