@@ -36,7 +36,7 @@ use zeth_guests::{
 use zeth_lib::{
     builder::{BlockBuilderStrategy, EthereumStrategy, OptimismStrategy},
     consts::{ChainSpec, Network, ETH_MAINNET_CHAIN_SPEC, OP_MAINNET_CHAIN_SPEC},
-    host::{preflight::Preflight, verify::Verifier},
+    // host::{preflight::Preflight, verify::Verifier},
     input::Input,
 };
 use zeth_primitives::BlockHash;
