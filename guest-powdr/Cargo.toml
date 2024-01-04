@@ -1,0 +1,12 @@
+[package]
+name = "guest-powdr"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+powdr_riscv_rt = { git = "https://github.com/powdr-labs/powdr", branch = "continuations-data-input" }
+zeth-lib = { path = "../lib", default-features = false }
+
+[workspace]
