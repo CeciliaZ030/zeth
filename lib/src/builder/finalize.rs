@@ -61,7 +61,7 @@ impl BlockFinalizeStrategy<MemDb> for MemDbBlockFinalizeStrategy {
 
             // remove deleted accounts from the state trie
             if account.state == AccountState::Deleted {
-                state_trie.delete(&state_trie_index)?;
+                state_trie.delete(&state_trie_index)/*? */.unwrap();
                 continue;
             }
 
@@ -81,9 +81,9 @@ impl BlockFinalizeStrategy<MemDb> for MemDbBlockFinalizeStrategy {
                 for (key, value) in state_storage {
                     let storage_trie_index = keccak(key.to_be_bytes::<32>());
                     if value == &U256::ZERO {
-                        storage_trie.delete(&storage_trie_index)?;
+                        storage_trie.delete(&storage_trie_index)/*? */.unwrap();
                     } else {
-                        storage_trie.insert_rlp(&storage_trie_index, *value)?;
+                        storage_trie.insert_rlp(&storage_trie_index, *value)/*? */.unwrap();
                     }
                 }
 
@@ -96,7 +96,7 @@ impl BlockFinalizeStrategy<MemDb> for MemDbBlockFinalizeStrategy {
                 storage_root,
                 code_hash: account.info.code_hash,
             };
-            state_trie.insert_rlp(&state_trie_index, state_account)?;
+            state_trie.insert_rlp(&state_trie_index, state_account)/*? */.unwrap();
         }
 
         // update result header with the new state root

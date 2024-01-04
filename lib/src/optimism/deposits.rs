@@ -24,6 +24,8 @@ use zeth_primitives::{
     },
     Address, Bloom, BloomInput, B256, U160, U256,
 };
+use alloc::vec::Vec;
+use alloc::vec;
 
 use super::{batcher_db::BlockInput, config::ChainConfig};
 

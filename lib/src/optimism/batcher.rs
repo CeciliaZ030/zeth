@@ -13,9 +13,10 @@
 // limitations under the License.
 
 use core::cmp::Ordering;
-use std::{
+use core::{
     cmp::Reverse,
     collections::{BinaryHeap, VecDeque},
+    vec::Vec,
 };
 
 use anyhow::{ensure, Context, Result};

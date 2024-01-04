@@ -13,15 +13,19 @@
 // limitations under the License.
 
 //! Constants for the Ethereum protocol.
-extern crate alloc;
 
-use std::{collections::BTreeMap, str::FromStr};
+// use std::{collections::BTreeMap, str::FromStr};
 
 use anyhow::bail;
 use once_cell::sync::Lazy;
 use revm::primitives::SpecId;
 use serde::{Deserialize, Serialize};
 use zeth_primitives::{uint, BlockNumber, ChainId, U256};
+
+extern crate alloc;
+use alloc::collections::BTreeMap;
+use alloc::string::{ToString, String};
+use alloc::str::FromStr;
 
 /// U256 representation of 0.
 pub const ZERO: U256 = U256::ZERO;

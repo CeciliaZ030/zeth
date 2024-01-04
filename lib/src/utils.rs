@@ -12,8 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{io, io::Read};
+// use std::{io, io::Read};
 
+use core::fmt::Error;
+
+pub trait Read {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error>;
+}
 /// An adaptor that chains multiple readers together.
 pub struct MultiReader<I, R> {
     readers: I,
@@ -46,7 +51,8 @@ where
     /// This function reads as much data as possible from the current reader into the
     /// buffer, and switches to the next reader when the current one is exhausted.
     #[inline]
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    // fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
         loop {
             match self.current {
                 Some(ref mut r) => {

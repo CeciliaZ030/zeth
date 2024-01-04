@@ -77,7 +77,7 @@ impl DbInitStrategy<MemDb> for MemDbInitStrategy {
             let state_account = block_builder
                 .input
                 .parent_state_trie
-                .get_rlp::<StateAccount>(&keccak(address))?
+                .get_rlp::<StateAccount>(&keccak(address)).unwrap()
                 .unwrap_or_default();
             // Verify storage trie root
             if storage_trie.hash() != state_account.storage_root {
@@ -102,7 +102,7 @@ impl DbInitStrategy<MemDb> for MemDbInitStrategy {
             let mut storage = HashMap::with_capacity(slots.len());
             for slot in slots {
                 let value: zeth_primitives::U256 = storage_trie
-                    .get_rlp(&keccak(slot.to_be_bytes::<32>()))?
+                    .get_rlp(&keccak(slot.to_be_bytes::<32>())).unwrap()
                     .unwrap_or_default();
                 storage.insert(slot, value);
             }

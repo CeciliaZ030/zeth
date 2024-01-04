@@ -30,6 +30,7 @@ use zeth_primitives::{
     trie::MptNode,
     uint, Address, BlockHash, BlockNumber, FixedBytes, RlpBytes, B256, U256,
 };
+use alloc::vec::Vec;
 
 use crate::{
     consts::ONE,

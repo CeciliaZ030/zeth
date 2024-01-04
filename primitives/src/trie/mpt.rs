@@ -26,6 +26,7 @@ use alloy_primitives::B256;
 use alloy_rlp::Encodable;
 use rlp::{Decodable, DecoderError, Prototype, Rlp};
 use serde::{Deserialize, Serialize};
+// use thiserror::Error as ThisError;
 
 use alloc::vec::Vec;
 use alloc::vec;
@@ -75,7 +76,7 @@ pub enum Error {
     // #[error("RLP error")]
     LegacyRlp(DecoderError),
 
-    RlpPlaceholder,
+    RlpErrorPlaceholder,
 }
 
 /// Represents the various types of data that can be stored within a node in the sparse
@@ -269,7 +270,7 @@ impl MptNode {
     /// This method allows for the deserialization of a previously serialized [MptNode].
     #[inline]
     pub fn decode(bytes: impl AsRef<[u8]>) -> Result<MptNode, Error> {
-        rlp::decode(bytes.as_ref()).map_err(|e| Error::RlpPlaceholder)
+        rlp::decode(bytes.as_ref()).map_err(|e| Error::RlpErrorPlaceholder)
     }
 
     /// Retrieves the underlying data of the node.

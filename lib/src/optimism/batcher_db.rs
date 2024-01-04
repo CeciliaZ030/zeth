@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
+// use std::collections::HashMap;
 
 use anyhow::{ensure, Result};
 use serde::{Deserialize, Serialize};
@@ -25,6 +25,9 @@ use zeth_primitives::{
     trie::MptNode,
     RlpBytes,
 };
+
+use core::collections::HashMap;
+use core::vec::Vec;
 
 use crate::optimism::{config::OPTIMISM_CHAIN_SPEC, deposits, system_config};
 

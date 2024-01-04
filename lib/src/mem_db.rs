@@ -18,24 +18,29 @@ use revm::{
     primitives::{Account, AccountInfo, Bytecode},
     Database, DatabaseCommit,
 };
-use thiserror::Error as ThisError;
+// use thiserror::Error as ThisError;
 use zeth_primitives::{Address, B256, U256};
 
+extern crate alloc;
+use alloc::vec::Vec;
+
 /// Error returned by the [MemDb].
-#[derive(Debug, ThisError)]
+#[derive(Debug, /* ThisError */)]
 pub enum DbError {
     /// Returned when an account was accessed but not loaded into the DB.
-    #[error("account {0} not loaded")]
+    // #[error("account {0} not loaded")]
     AccountNotFound(Address),
     /// Returned when storage was accessed but not loaded into the DB.
-    #[error("storage {1}@{0} not loaded")]
+    // #[error("storage {1}@{0} not loaded")]
     SlotNotFound(Address, U256),
     /// Returned when a block hash was accessed but not loaded into the DB.
-    #[error("block {0} not loaded")]
+    // #[error("block {0} not loaded")]
     BlockNotFound(u64),
     /// Unspecified error.
-    #[error(transparent)]
-    Unspecified(#[from] anyhow::Error),
+    // #[error(transparent)]
+    Unspecified(anyhow::Error),
+
+    DbErrorPlaceholder,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -172,7 +177,7 @@ impl Database for MemDb {
                 u64::MAX,
                 &number
             )
-        })?;
+        })/*? */.unwrap();
         self.block_hashes
             .get(&block_no)
             .cloned()
