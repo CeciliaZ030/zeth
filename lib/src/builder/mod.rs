@@ -16,13 +16,13 @@ use anyhow::Result;
 use revm::{Database, DatabaseCommit};
 use zeth_primitives::{
     block::Header,
-    transactions::{ethereum::EthereumTxEssence, optimism::OptimismTxEssence, TxEssence},
+    transactions::{ethereum::EthereumTxEssence, /* optimism::OptimismTxEssence, */ TxEssence},
     trie::MptNode,
 };
 
 use crate::{
     builder::{
-        execute::{ethereum::EthTxExecStrategy, optimism::OpTxExecStrategy, TxExecStrategy},
+        execute::{ethereum::EthTxExecStrategy,/*  optimism::OpTxExecStrategy, */ TxExecStrategy},
         finalize::{BlockFinalizeStrategy, MemDbBlockFinalizeStrategy},
         initialize::{DbInitStrategy, MemDbInitStrategy},
         prepare::{EthHeaderPrepStrategy, HeaderPrepStrategy},
@@ -132,13 +132,13 @@ impl BlockBuilderStrategy for EthereumStrategy {
     type BlockFinalizeStrategy = MemDbBlockFinalizeStrategy;
 }
 
-/// The [BlockBuilderStrategy] for building an Optimism block.
-pub struct OptimismStrategy {}
+// The [BlockBuilderStrategy] for building an Optimism block.
+// pub struct OptimismStrategy {}
 
-impl BlockBuilderStrategy for OptimismStrategy {
-    type TxEssence = OptimismTxEssence;
-    type DbInitStrategy = MemDbInitStrategy;
-    type HeaderPrepStrategy = EthHeaderPrepStrategy;
-    type TxExecStrategy = OpTxExecStrategy;
-    type BlockFinalizeStrategy = MemDbBlockFinalizeStrategy;
-}
+// impl BlockBuilderStrategy for OptimismStrategy {
+//     type TxEssence = OptimismTxEssence;
+//     type DbInitStrategy = MemDbInitStrategy;
+//     type HeaderPrepStrategy = EthHeaderPrepStrategy;
+//     type TxExecStrategy = OpTxExecStrategy;
+//     type BlockFinalizeStrategy = MemDbBlockFinalizeStrategy;
+// }

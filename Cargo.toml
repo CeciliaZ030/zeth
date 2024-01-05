@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "guests",
     "bin-powdr",
+    # "guest-powdr",
     # "host",
     "lib",
     "primitives",

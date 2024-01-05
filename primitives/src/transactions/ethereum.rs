@@ -421,14 +421,15 @@ impl TxEssence for EthereumTxEssence {
         let is_y_odd = self.is_y_odd(signature).context("v invalid")?;
         let signature =
             K256Signature::from_scalars(signature.r.to_be_bytes(), signature.s.to_be_bytes())
-                .context("r, s invalid")?;
+                .unwrap();
+                //.context("r, s invalid")?;
 
         let verify_key = K256VerifyingKey::recover_from_prehash(
             self.signing_hash().as_slice(),
             &signature,
             RecoveryId::new(is_y_odd, false),
-        )
-        .context("invalid signature")?;
+        ).unwrap();
+        //.context("invalid signature")?;
 
         let public_key = K256PublicKey::from(&verify_key);
         let public_key = public_key.to_encoded_point(false);

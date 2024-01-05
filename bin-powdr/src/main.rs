@@ -5,7 +5,7 @@ fn main() {
     env_logger::init();
     println!("Compiling Rust...");
     let (asm_file_path, asm_contents) = compile_rust(
-        "./guest-powdr",
+        "./guest-powdr/Cargo.toml",
         Path::new("/tmp/test"),
         true,
         &CoProcessors::base().with_poseidon(),
