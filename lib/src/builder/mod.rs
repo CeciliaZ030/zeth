@@ -20,14 +20,14 @@ use zeth_primitives::{
     trie::MptNode,
 };
 
-use crate::{
+pub use crate::{
     builder::{
         execute::{ethereum::EthTxExecStrategy,/*  optimism::OpTxExecStrategy, */ TxExecStrategy},
         finalize::{BlockFinalizeStrategy, MemDbBlockFinalizeStrategy},
         initialize::{DbInitStrategy, MemDbInitStrategy},
         prepare::{EthHeaderPrepStrategy, HeaderPrepStrategy},
     },
-    consts::ChainSpec,
+    consts::{ChainSpec, Eip1559Constants, ForkCondition},
     input::Input,
     mem_db::MemDb,
 };

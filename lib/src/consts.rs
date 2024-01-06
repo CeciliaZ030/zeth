@@ -124,9 +124,9 @@ impl Default for Eip1559Constants {
 /// Specification of a specific chain.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ChainSpec {
-    chain_id: ChainId,
-    hard_forks: BTreeMap<SpecId, ForkCondition>,
-    eip_1559_constants: Eip1559Constants,
+    pub chain_id: ChainId,
+    pub hard_forks: BTreeMap<SpecId, ForkCondition>,
+    pub eip_1559_constants: Eip1559Constants,
 }
 
 impl ChainSpec {

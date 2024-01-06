@@ -492,7 +492,10 @@ dependencies = [
 name = "guest-powdr"
 version = "0.1.0"
 dependencies = [
+ "revm",
+ "ruint",
  "zeth-lib",
+ "zeth-primitives",
 ]
 
 [[package]]
