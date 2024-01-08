@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "ahash"
-version = "0.8.7"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77c3a9648d43b9cd48db467b3f87fdd6e146bcc88ab0180006cef2179fe11d01"
+checksum = "91429305e9f0a25f6205c5b8e0d2db09e0708a7a6df0f42212bb56c32c8ac97a"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -492,6 +492,8 @@ dependencies = [
 name = "guest-powdr"
 version = "0.1.0"
 dependencies = [
+ "ahash",
+ "powdr_riscv_rt",
  "revm",
  "ruint",
  "zeth-lib",
@@ -766,6 +768,11 @@ name = "peeking_take_while"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b17cddbe7ec3f8bc800887bab5e717348c95ea2ca0b1bf0837fb964dc67099"
+
+[[package]]
+name = "powdr_riscv_rt"
+version = "0.1.0"
+source = "git+https://github.com/powdr-labs/powdr?branch=continuations-data-input#64b18bcdf881b1fadd6f97b6946f4f24884792a9"
 
 [[package]]
 name = "ppv-lite86"
