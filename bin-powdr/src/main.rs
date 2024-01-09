@@ -14,11 +14,16 @@ fn main() {
         Path::new("/tmp/test"),
         true,
         &CoProcessors::base().with_poseidon(),
-        true,
+        /*use bootloader*/ false,
     )
     .ok_or_else(|| vec!["could not compile rust".to_string()])
     .unwrap();
+    println!("Compilation done.");
+    println!("Creating pipeline...");
     let pipeline: Pipeline<GoldilocksField> =
         Pipeline::default().from_asm_string(asm_contents, Some(PathBuf::from(asm_file_path)));
+    println!("Pipeline done.");
+    println!("Verifying pipeline...");
     verify_pipeline(pipeline, Vec::new(), Vec::new());
+    println!("Verification done.");
 }
