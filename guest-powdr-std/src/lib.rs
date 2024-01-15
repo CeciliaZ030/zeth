@@ -1,4 +1,3 @@
-#![no_std]
 use ruint::uint;
 use zeth_lib::{
     builder::{BlockBuilderStrategy, EthereumStrategy, 
@@ -16,7 +15,7 @@ use alloc::{collections::BTreeMap, vec};
 // cargo +nightly-2023-01-03 build --release -Z build-std=core,alloc --target riscv32imac-unknown-none-elf --lib 
 // cargo +nightly-2023-01-03 run --release -Z build-std=core,alloc --target riscv32imac-unknown-none-elf --lib 
 
-#[no_mangle]
+// #[no_mangle]
 fn main() {
     // Build the resulting block
     let eth_mainnet = ChainSpec {
@@ -34,10 +33,6 @@ fn main() {
             base_fee_max_decrease_denominator: uint!(8_U256),
             elasticity_multiplier: uint!(2_U256),
         },
-    };
-    let mut tx = Transaction {
-        essence: EthereumTxEssence::Eip1559(TxEssenceEip1559::default()),
-        signature: TxSignature::default(),
     };
     let mut input = Input::<EthereumTxEssence> {
         transactions: vec![
@@ -66,4 +61,5 @@ fn main() {
 
     let (header, state) = EthereumStrategy::build_from(&eth_mainnet, input)
         .expect("Failed to build the resulting block");
+    println!("header: {:?}", header);
 }
