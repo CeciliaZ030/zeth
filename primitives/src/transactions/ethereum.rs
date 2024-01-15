@@ -418,24 +418,23 @@ impl TxEssence for EthereumTxEssence {
     }
     /// Recovers the Ethereum address of the sender from the transaction's signature.
     fn recover_from(&self, signature: &TxSignature) -> anyhow::Result<Address> {
-        // let is_y_odd = self.is_y_odd(signature).context("v invalid")?;
-        // let signature =
-        //     K256Signature::from_scalars(signature.r.to_be_bytes(), signature.s.to_be_bytes())
-        //         .unwrap();
-        //         //.context("r, s invalid")?;
+        let is_y_odd = self.is_y_odd(signature).context("v invalid")?;
+        let signature =
+            K256Signature::from_scalars(signature.r.to_be_bytes(), signature.s.to_be_bytes())
+                .unwrap();
+                //.context("r, s invalid")?;
 
-        // let verify_key = K256VerifyingKey::recover_from_prehash(
-        //     self.signing_hash().as_slice(),
-        //     &signature,
-        //     RecoveryId::new(is_y_odd, false),
-        // ).unwrap();
-        // //.context("invalid signature")?;
+        let verify_key = K256VerifyingKey::recover_from_prehash(
+            self.signing_hash().as_slice(),
+            &signature,
+            RecoveryId::new(is_y_odd, false),
+        ).unwrap();
+        //.context("invalid signature")?;
 
-        // let public_key = K256PublicKey::from(&verify_key);
-        // let public_key = public_key.to_encoded_point(false);
-        // let public_key = public_key.as_bytes();
-        // debug_assert_eq!(public_key[0], 0x04);
-        let public_key = [0x04; 65];
+        let public_key = K256PublicKey::from(&verify_key);
+        let public_key = public_key.to_encoded_point(false);
+        let public_key = public_key.as_bytes();
+        debug_assert_eq!(public_key[0], 0x04);
         let hash = keccak(&public_key[1..]);
 
         Ok(Address::from_slice(&hash[12..]))

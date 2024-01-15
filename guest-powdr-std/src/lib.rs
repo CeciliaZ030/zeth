@@ -34,13 +34,13 @@ fn main() {
             elasticity_multiplier: uint!(2_U256),
         },
     };
+    // TODO(Cecilia): This is wrong!! Need to sign the transaction which need k256::escsa signing (TODO)
+    let mut tx = Transaction {
+        essence: EthereumTxEssence::Eip1559(TxEssenceEip1559::default()),
+        signature: TxSignature::default(),
+    };
     let mut input = Input::<EthereumTxEssence> {
-        transactions: vec![
-            Transaction {
-                essence: EthereumTxEssence::Eip1559(TxEssenceEip1559::default()),
-                signature: TxSignature::default(),
-            }
-        ],
+        transactions: vec![tx],
         parent_header: Default::default(),
         beneficiary: Default::default(),
         gas_limit: Default::default(),
@@ -59,7 +59,6 @@ fn main() {
     input.timestamp = uint!(2_U256);
     input.parent_header.number = 15537400;
 
-    let (header, state) = EthereumStrategy::build_from(&eth_mainnet, input)
-        .expect("Failed to build the resulting block");
-    println!("header: {:?}", header);
+    // let (header, state) = EthereumStrategy::build_from(&eth_mainnet, input)
+    //     .expect("Failed to build the resulting block");
 }
