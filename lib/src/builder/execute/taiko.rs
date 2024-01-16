@@ -40,9 +40,9 @@ use crate::{
     guest_mem_forget,
 };
 
-pub struct EthTxExecStrategy {}
+pub struct TaikoTxExecStrategy {}
 
-impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
+impl TxExecStrategy<EthereumTxEssence> for TaikoTxExecStrategy {
     fn execute_transactions<D>(
         mut block_builder: BlockBuilder<D, EthereumTxEssence>,
     ) -> anyhow::Result<BlockBuilder<D, EthereumTxEssence>>
@@ -113,10 +113,24 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
             .into_iter()
             .enumerate()
         {
+
+            // anchor transaction must be executed successfully
+            let is_anchor = tx_no == 0;
             // verify the transaction signature
-            let tx_from = tx
-                .recover_from()
-                .with_context(|| format!("Error recovering address for transaction {}", tx_no))?;
+            let tx_from = match tx.recover_from() {
+                Ok(tx_from) => tx_from,
+                Err(err) => {
+                    if is_anchor {
+                        bail!("Error recovering anchor signature: {}", err);
+                    }
+                    #[cfg(not(target_os = "zkvm"))]
+                    debug!(
+                        "Error recovering address for transaction {}, error: {}",
+                        tx_no, err
+                    );
+                    continue;
+                }
+            };
 
             #[cfg(not(target_os = "zkvm"))]
             {
@@ -130,7 +144,12 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
             // verify transaction gas
             let block_available_gas = block_builder.input.gas_limit - cumulative_gas_used;
             if block_available_gas < tx.essence.gas_limit() {
-                bail!("Error at transaction {}: gas exceeds block limit", tx_no);
+                if is_anchor {
+                    bail!("Error at transaction {}: gas exceeds block limit", tx_no);
+                }
+                #[cfg(not(target_os = "zkvm"))]
+                debug!("Error at transaction {}: gas exceeds block limit", tx_no);
+                continue;
             }
 
             // process the transaction

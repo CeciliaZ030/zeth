@@ -22,7 +22,12 @@ use zeth_primitives::{
 
 use crate::{
     builder::{
-        execute::{ethereum::EthTxExecStrategy, optimism::OpTxExecStrategy, TxExecStrategy},
+        execute::{
+            ethereum::EthTxExecStrategy, 
+            optimism::OpTxExecStrategy, 
+            taiko::TaikoTxExecStrategy,
+            TxExecStrategy
+        },
         finalize::{BlockFinalizeStrategy, MemDbBlockFinalizeStrategy},
         initialize::{DbInitStrategy, MemDbInitStrategy},
         prepare::{EthHeaderPrepStrategy, HeaderPrepStrategy},

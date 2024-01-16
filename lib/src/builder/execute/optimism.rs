@@ -34,11 +34,10 @@ use zeth_primitives::{
 };
 
 use super::{
-    ethereum::{fill_eth_tx_env, increase_account_balance},
-    TxExecStrategy,
+    TxExecStrategy, read_uint,
 };
 use crate::{
-    builder::BlockBuilder,
+    builder::{BlockBuilder, execute::{fill_deposit_tx_env, decrease_account_balance, fill_eth_tx_env, increase_account_balance}},
     consts,
     consts::{GWEI_TO_WEI, MIN_SPEC_ID},
     guest_mem_forget,
@@ -357,110 +356,4 @@ impl TxExecStrategy<OptimismTxEssence> for OpTxExecStrategy {
         // Return block builder with updated database
         Ok(block_builder.with_db(db))
     }
-}
-
-fn read_uint<D>(
-    evm: &mut EVM<D>,
-    abi_call: Vec<u8>,
-    chain_id: Option<zeth_primitives::ChainId>,
-    gas_limit: U256,
-    address: Address,
-) -> Result<U256>
-where
-    D: Database + DatabaseCommit,
-    <D as Database>::Error: Debug,
-{
-    let op_l1_tx =
-        EthereumTxEssence::Legacy(zeth_primitives::transactions::ethereum::TxEssenceLegacy {
-            chain_id,
-            nonce: 0,
-            gas_price: U256::ZERO,
-            gas_limit,
-            to: TransactionKind::Call(address),
-            value: U256::ZERO,
-            data: abi_call.into(),
-        });
-
-    // disable base fees
-    evm.env.cfg.disable_base_fee = true;
-    evm.env.cfg.disable_balance_check = true;
-    fill_eth_tx_env(&mut evm.env.tx, &op_l1_tx, Default::default());
-
-    let Ok(ResultAndState {
-        result: execution_result,
-        ..
-    }) = evm.transact()
-    else {
-        bail!("Error during execution");
-    };
-
-    let revm::primitives::ExecutionResult::Success { output, .. } = execution_result else {
-        bail!("Result unsuccessful");
-    };
-
-    let revm::primitives::Output::Call(result_encoded) = output else {
-        bail!("Unsupported result");
-    };
-
-    let ethers_core::abi::Token::Uint(uint_result) =
-        ethers_core::abi::decode(&[ethers_core::abi::ParamType::Uint(256)], &result_encoded)?
-            .pop()
-            .unwrap()
-    else {
-        bail!("Could not decode result");
-    };
-
-    Ok(U256::from_limbs(uint_result.0))
-}
-
-fn fill_deposit_tx_env(
-    tx_env: &mut TxEnv,
-    tx: &TxEssenceOptimismDeposited,
-    caller: Address,
-    deposit_nonce: Option<u64>,
-) {
-    tx_env.caller = caller; // previously overridden to tx.from
-    tx_env.gas_limit = tx.gas_limit.try_into().unwrap();
-    tx_env.gas_price = U256::ZERO;
-    tx_env.gas_priority_fee = None;
-    tx_env.transact_to = if let TransactionKind::Call(to_addr) = tx.to {
-        TransactTo::Call(to_addr)
-    } else {
-        TransactTo::create()
-    };
-    tx_env.value = tx.value;
-    tx_env.data = tx.data.clone();
-    tx_env.chain_id = None;
-    tx_env.nonce = deposit_nonce;
-    tx_env.access_list.clear();
-}
-
-pub fn decrease_account_balance<D>(
-    db: &mut D,
-    address: Address,
-    amount_wei: U256,
-) -> anyhow::Result<()>
-where
-    D: Database + DatabaseCommit,
-    <D as Database>::Error: Debug,
-{
-    // Read account from database
-    let mut account: Account = db
-        .basic(address)
-        .map_err(|db_err| {
-            anyhow!(
-                "Error decreasing account balance for {}: {:?}",
-                address,
-                db_err
-            )
-        })?
-        .unwrap_or_default()
-        .into();
-    // Credit withdrawal amount
-    account.info.balance = account.info.balance.checked_sub(amount_wei).unwrap();
-    account.mark_touch();
-    // Commit changes to database
-    db.commit([(address, account)].into());
-
-    Ok(())
 }
