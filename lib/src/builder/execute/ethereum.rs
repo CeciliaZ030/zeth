@@ -19,7 +19,7 @@ use anyhow::{anyhow, bail, Context};
 use log::debug;
 use revm::{
     primitives::{Account, Address, ResultAndState, SpecId, TransactTo, TxEnv},
-    Database, DatabaseCommit, EVM,
+    Database, DatabaseCommit, Evm,
 };
 use ruint::aliases::U256;
 use zeth_primitives::{
@@ -84,7 +84,7 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
         }
 
         // initialize the EVM
-        let mut evm = EVM::new();
+        let mut evm = Evm::new();
 
         // set the EVM configuration
         evm.env.cfg.chain_id = block_builder.chain_spec.chain_id();

@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-zeth-lib = { path = "../lib", default-features = false }
-zeth-primitives = { path = "../primitives", features = ["revm"] }
+# zeth-lib = { path = "../lib", default-features = false }
+# zeth-primitives = { path = "../primitives", features = ["revm"] }
 revm = { path = "../../revm/crates/revm", default-features = false, features = ["serde"] }
 # revm = { git = "https://github.com/powdr-labs/revm", branch = "serde-no-std", default-features = false, features = [ "serde" ] }
 ruint = { version = "1.10", default-features = false }
