@@ -1,3 +1,4 @@
+#![no_std]
 use ruint::uint;
 use zeth_lib::{
     builder::{BlockBuilderStrategy, EthereumStrategy, 
