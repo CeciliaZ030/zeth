@@ -9,7 +9,7 @@ anyhow = { version = "1.0", default-features = false }
 hashbrown = { workspace = true }
 once_cell = {version = "1.18", default_features = false}
 
-revm = { git = "https://github.com/powdr-labs/revm", branch = "serde-no-std", default-features = false, features = [ "serde" ] }
+revm = { workspace = true }
 ruint = { version = "1.10", default-features = false }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 serde = { version = "1.0", default-features = false, features = ["alloc"] }

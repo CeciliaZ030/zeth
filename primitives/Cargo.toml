@@ -15,7 +15,7 @@ bytes = { version = "1.1", default-features = false }
 
 k256 = { version = "=0.13.2", features = ["ecdsa"], default_features = false }
 
-revm-primitives = { git = "https://github.com/powdr-labs/revm.git", branch = "serde-no-std", package = "revm-primitives", default-features = false, features = [ "serde" ], optional = true }
+revm-primitives = { workspace = true, optional = true }
 rlp = {version = "0.5.2", default_features = false}
 serde = { version = "1.0", default-features = false, features = ["alloc"] }
 sha3 = {version = "0.10", default_features = false}
