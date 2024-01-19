@@ -8,6 +8,12 @@ use std::path::{Path, PathBuf};
 
 // Step1: set PILCOM to path (https://github.com/0xPolygonHermez/pilcom)
 // Step2: cargo run --package bin-powdr --bin bin-powdr --all-features 
+///
+/// Note:
+/// revm dependencies located in workspace as well as in the guest-powdr/Cargo.toml
+/// revm = { git = "some-repo"}
+/// revm-primitives = { git = "some-repo",  package = "revm-primitives" }
+/// "some-repo" has to be the same.
 fn main() {
     env_logger::init();
     println!("Compiling Rust...");
