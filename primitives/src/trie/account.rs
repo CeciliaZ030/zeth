@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use core::default::Default;
+
 use alloy_primitives::{TxNumber, B256, U256};
 use alloy_rlp_derive::{RlpDecodable, RlpEncodable, RlpMaxEncodedLen};
 use serde::{Deserialize, Serialize};
@@ -23,7 +25,17 @@ use crate::{keccak::KECCAK_EMPTY, trie::EMPTY_ROOT};
 /// The `StateAccount` struct encapsulates key details of an Ethereum account, including
 /// its nonce, balance, storage root, and the hash of its associated bytecode. This
 /// representation is used when interacting with or querying the Ethereum state trie.
-#[derive(Debug, Clone, Serialize, Deserialize, RlpEncodable, RlpDecodable, RlpMaxEncodedLen)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    RlpEncodable,
+    RlpDecodable,
+    RlpMaxEncodedLen,
+)]
 pub struct StateAccount {
     /// The number of transactions sent from this account's address.
     pub nonce: TxNumber,

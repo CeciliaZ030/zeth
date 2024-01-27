@@ -14,27 +14,49 @@
 
 //! Convert from Ethers types.
 
+extern crate alloc;
+extern crate core;
+
+pub use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
+pub use core::{
+    convert::From,
+    default::Default,
+    num::TryFromIntError,
+    option::{Option, Option::*},
+    result::{Result, Result::*},
+};
+
 use alloy_primitives::{Address, Bloom, Bytes, B256, U256};
 use anyhow::{anyhow, Context};
 use ethers_core::types::{
     transaction::eip2930::{
         AccessList as EthersAccessList, AccessListItem as EthersAccessListItem,
     },
-    Block as EthersBlock, Bytes as EthersBytes, Transaction as EthersTransaction,
+    Block as EthersBlock, Bytes as EthersBytes, EIP1186ProofResponse,
+    Transaction as EthersTransaction, TransactionReceipt as EthersReceipt,
     Withdrawal as EthersWithdrawal, H160 as EthersH160, H256 as EthersH256, U256 as EthersU256,
+    U64,
 };
 
 use crate::{
     access_list::{AccessList, AccessListItem},
     block::Header,
-    signature::TxSignature,
+    receipt::{Log, Receipt, ReceiptPayload},
     transactions::{
         ethereum::{
             EthereumTxEssence, TransactionKind, TxEssenceEip1559, TxEssenceEip2930, TxEssenceLegacy,
         },
         optimism::{OptimismTxEssence, TxEssenceOptimismDeposited},
+        signature::TxSignature,
         Transaction, TxEssence,
     },
+    trie::StateAccount,
     withdrawal::Withdrawal,
 };
 
@@ -42,6 +64,12 @@ use crate::{
 #[inline]
 pub fn from_ethers_u256(v: EthersU256) -> U256 {
     U256::from_limbs(v.0)
+}
+
+/// Convert an `U256` type to the `EthersU256` type.
+#[inline]
+pub fn to_ethers_u256(v: U256) -> EthersU256 {
+    EthersU256(v.into_limbs())
 }
 
 /// Convert an `EthersH160` type to the `Address` type.
@@ -227,9 +255,9 @@ impl TryFrom<EthersTransaction> for OptimismTxEssence {
                 to: tx.to.into(),
                 value: from_ethers_u256(tx.value),
                 data: tx.input.0.into(),
-                source_hash: from_ethers_h256(tx.source_hash.unwrap_or_default()),
-                mint: from_ethers_u256(tx.mint.unwrap_or_default()),
-                is_system_tx: tx.is_system_tx.unwrap_or_default(),
+                source_hash: from_ethers_h256(tx.source_hash),
+                mint: from_ethers_u256(tx.mint.context("mint missing")?),
+                is_system_tx: tx.is_system_tx,
             }),
             _ => OptimismTxEssence::Ethereum(tx.try_into()?),
         };
@@ -252,5 +280,52 @@ impl TryFrom<EthersWithdrawal> for Withdrawal {
                 .try_into()
                 .map_err(|err| anyhow!("invalid amount: {}", err))?,
         })
+    }
+}
+
+impl TryFrom<EthersReceipt> for Receipt {
+    type Error = anyhow::Error;
+
+    fn try_from(receipt: EthersReceipt) -> Result<Self, Self::Error> {
+        Ok(Receipt {
+            tx_type: receipt
+                .transaction_type
+                .context("transaction_type missing")?
+                .as_u64()
+                .try_into()
+                .map_err(|e: TryFromIntError| anyhow!(e))
+                .context("invalid transaction_type")?,
+            payload: ReceiptPayload {
+                success: receipt.status.context("status missing")? == U64::one(),
+                cumulative_gas_used: from_ethers_u256(receipt.cumulative_gas_used),
+                logs_bloom: Bloom::from_slice(receipt.logs_bloom.as_bytes()),
+                logs: receipt
+                    .logs
+                    .into_iter()
+                    .map(|log| {
+                        let address = log.address.0.into();
+                        let topics = log.topics.into_iter().map(from_ethers_h256).collect();
+                        let data = log.data.0.into();
+                        Log {
+                            address,
+                            topics,
+                            data,
+                        }
+                    })
+                    .collect(),
+            },
+        })
+    }
+}
+
+/// Conversion from `EIP1186ProofResponse` to the local [StateAccount].
+impl From<EIP1186ProofResponse> for StateAccount {
+    fn from(response: EIP1186ProofResponse) -> Self {
+        StateAccount {
+            nonce: response.nonce.as_u64(),
+            balance: from_ethers_u256(response.balance),
+            storage_root: from_ethers_h256(response.storage_hash),
+            code_hash: from_ethers_h256(response.code_hash),
+        }
     }
 }

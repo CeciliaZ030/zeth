@@ -1,4 +1,4 @@
-// Copyright 2023 RISC Zero, Inc.
+// Copyright 2024 RISC Zero, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,23 @@
 // limitations under the License.
 
 //! Convert to revm types.
+
+extern crate alloc;
+extern crate core;
+
+pub use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
+pub use core::{
+    convert::From,
+    default::Default,
+    option::{Option, Option::*},
+    result::{Result, Result::*},
+};
 
 use alloy_primitives::{Address, U256};
 use revm_primitives::Log as RevmLog;
@@ -49,8 +66,8 @@ impl From<RevmLog> for Log {
     fn from(log: RevmLog) -> Self {
         Log {
             address: log.address,
-            topics: log.topics,
-            data: log.data,
+            topics: log.data.topics().to_vec(),
+            data: log.data.data,
         }
     }
 }

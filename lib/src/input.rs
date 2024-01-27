@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core::fmt::Debug;
+use alloc::{vec, vec::Vec};
 
 use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
@@ -23,6 +23,11 @@ use zeth_primitives::{
     withdrawal::Withdrawal,
     Address, Bytes, B256, U256,
 };
+
+/// Represents the state of an account's storage.
+/// The storage trie together with the used storage slots allow us to reconstruct all the
+/// required values.
+pub type StorageEntry = (MptNode, Vec<U256>);
 
 /// External block input.
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -52,8 +57,6 @@ pub struct Input<E: TxEssence> {
     /// List of at most 256 previous block headers
     pub ancestor_headers: Vec<Header>,
 }
-
-pub type StorageEntry = (MptNode, Vec<U256>);
 
 #[cfg(test)]
 mod tests {

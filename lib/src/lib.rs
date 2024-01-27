@@ -11,22 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+#![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 extern crate core;
 
-#[cfg(not(target_os = "zkvm"))]
-pub mod host;
-
-pub mod block_builder;
+pub mod builder;
 pub mod consts;
-pub mod execution;
-pub mod finalization;
-pub mod initialization;
 pub mod input;
 pub mod mem_db;
-pub mod preparation;
+pub mod optimism;
 
-pub use zeth_primitives::transactions::ethereum::EthereumTxEssence;
+mod utils;
+
+pub use zeth_primitives::transactions::{ethereum::EthereumTxEssence, optimism::OptimismTxEssence};
 
 /// call forget only if running inside the guest
 pub fn guest_mem_forget<T>(_t: T) {
