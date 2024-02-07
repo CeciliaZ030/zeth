@@ -13,13 +13,16 @@
 // limitations under the License.
 
 use core::{fmt::Debug, mem::take};
+use core::str::from_utf8;
 
-use anyhow::{anyhow, bail, Context};
+use alloy_primitives::hex::decode;
+use anyhow::{anyhow, bail, Context, Result};
 #[cfg(not(target_os = "zkvm"))]
 use log::debug;
+use revm::taiko;
 use revm::{
     interpreter::Host,
-    primitives::{Account, Address, ResultAndState, SpecId, TransactTo, TxEnv},
+    primitives::{Address, ResultAndState, SpecId, TransactTo, TxEnv},
     Database, DatabaseCommit, Evm,
 };
 use ruint::aliases::U256;
@@ -30,21 +33,22 @@ use zeth_primitives::{
         TxEssence,
     },
     trie::MptNode,
-    Bloom, RlpBytes,
+    Bloom, Bytes, RlpBytes,
 };
-
-use super::TxExecStrategy;
+use crate::consts::ChainSpec;
+use crate::taiko::decode_anchor;
+use super::{ethereum, TxExecStrategy};
 use crate::{builder::BlockBuilder, consts, guest_mem_forget};
 
-/// Minimum supported protocol version: Paris (Block no. 15537394).
-const MIN_SPEC_ID: SpecId = SpecId::MERGE;
+/// Minimum supported protocol version: Bedrock (Block no. 105235063).
+const MIN_SPEC_ID: SpecId = SpecId::KATLA; //Todo: change
 
-pub struct EthTxExecStrategy {}
+pub struct TkoTxExecStrategy {}
 
-impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
+impl TxExecStrategy<EthereumTxEssence> for TkoTxExecStrategy {
     fn execute_transactions<D>(
         mut block_builder: BlockBuilder<D, EthereumTxEssence>,
-    ) -> anyhow::Result<BlockBuilder<D, EthereumTxEssence>>
+    ) -> Result<BlockBuilder<D, EthereumTxEssence>>
     where
         D: Database + DatabaseCommit,
         <D as Database>::Error: Debug,
@@ -62,6 +66,7 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
                 spec_id,
             )
         }
+        let chain_id = block_builder.chain_spec.chain_id();
 
         #[cfg(not(target_os = "zkvm"))]
         {
@@ -75,21 +80,18 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
             info!("  EVM spec ID: {:?}", spec_id);
             info!("  Timestamp: {}", dt);
             info!("  Transactions: {}", block_builder.input.transactions.len());
-            info!("  Withdrawals: {}", block_builder.input.withdrawals.len());
             info!("  Fee Recipient: {:?}", block_builder.input.beneficiary);
             info!("  Gas limit: {}", block_builder.input.gas_limit);
             info!("  Base fee per gas: {}", header.base_fee_per_gas);
             info!("  Extra data: {:?}", block_builder.input.extra_data);
         }
 
-        // initialize the Evm
         let mut evm = Evm::builder()
             .spec_id(spec_id)
             .modify_cfg_env(|cfg_env| {
                 // set the EVM configuration
-                cfg_env.chain_id = block_builder.chain_spec.chain_id();
-                // Added features "optimism" in revm
-                // cfg_env.optimism = false;
+                cfg_env.chain_id = chain_id;
+                cfg_env.taiko = true;
             })
             .modify_block_env(|blk_env| {
                 // set the EVM block environment
@@ -102,6 +104,7 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
                 blk_env.gas_limit = block_builder.input.gas_limit;
             })
             .with_db(block_builder.db.take().unwrap())
+            .append_handler_register(taiko::handler_register::taiko_handle_register)
             .build();
 
         // bloom filter over all transaction logs
@@ -112,10 +115,14 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
         // process all the transactions
         let mut tx_trie = MptNode::default();
         let mut receipt_trie = MptNode::default();
+        let mut actual_tx_no = 0usize;
+
         for (tx_no, tx) in take(&mut block_builder.input.transactions)
             .into_iter()
             .enumerate()
         {
+            // anchor transaction must be executed successfully
+            let is_anchor = tx_no == 0;
             // verify the transaction signature
             let tx_from = tx
                 .recover_from()
@@ -136,11 +143,27 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
                 bail!("Error at transaction {}: gas exceeds block limit", tx_no);
             }
 
+            fill_eth_tx_env(
+                block_builder.chain_spec,
+                &mut evm.env().tx,
+                &tx.essence,
+                tx_from,
+                is_anchor,
+            );
+
             // process the transaction
-            fill_eth_tx_env(&mut evm.env().tx, &tx.essence, tx_from);
             let ResultAndState { result, state } = evm
                 .transact()
                 .map_err(|evm_err| anyhow!("Error at transaction {}: {:?}", tx_no, evm_err))?;
+
+            if is_anchor && !result.is_success() {
+                bail!(
+                    "Error at transaction {}: execute anchor failed {:?}, output {:?}",
+                    tx_no,
+                    result,
+                    result.output().map(|o| from_utf8(o).unwrap_or_default())
+                );
+            }
 
             let gas_used = result.gas_used().try_into().unwrap();
             cumulative_gas_used = cumulative_gas_used.checked_add(gas_used).unwrap();
@@ -156,30 +179,17 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
                 result.logs().into_iter().map(|log| log.into()).collect(),
             );
 
-            // accumulate logs to the block bloom filter
-            logs_bloom.accrue_bloom(&receipt.payload.logs_bloom);
-
-            // Add receipt and tx to tries
-            let trie_key = tx_no.to_rlp();
-            tx_trie
-                .insert_rlp(&trie_key, tx)
-                .context("failed to insert transaction")?;
-            receipt_trie
-                .insert_rlp(&trie_key, receipt)
-                .context("failed to insert receipt")?;
-
             // update account states
             #[cfg(not(target_os = "zkvm"))]
             for (address, account) in &state {
                 if account.is_touched() {
                     // log account
                     debug!(
-                        "  State {:?} (is_selfdestructed={}, is_loaded_as_not_existing={}, is_created={}, is_empty={})",
+                        "  State {:?} (is_selfdestructed={}, is_loaded_as_not_existing={}, is_created={})",
                         address,
                         account.is_selfdestructed(),
                         account.is_loaded_as_not_existing(),
-                        account.is_created(),
-                        account.is_empty(),
+                        account.is_created()
                     );
                     // log balance changes
                     debug!(
@@ -198,131 +208,50 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
                 }
             }
 
+            actual_tx_no += 1;
+
             evm.context.evm.db.commit(state);
+
+            // accumulate logs to the block bloom filter
+            logs_bloom.accrue_bloom(&receipt.payload.logs_bloom);
+
+            // Add receipt and tx to tries
+            let trie_key = tx_no.to_rlp();
+            tx_trie
+                .insert_rlp(&trie_key, tx)
+                .context("failed to insert transaction")?;
+            receipt_trie
+                .insert_rlp(&trie_key, receipt)
+                .context("failed to insert receipt")?;
+        
         }
-
-        // process withdrawals unconditionally after any transactions
-        let mut withdrawals_trie = MptNode::default();
-        for (i, withdrawal) in take(&mut block_builder.input.withdrawals)
-            .into_iter()
-            .enumerate()
-        {
-            // the withdrawal amount is given in Gwei
-            let amount_wei = consts::GWEI_TO_WEI
-                .checked_mul(withdrawal.amount.try_into().unwrap())
-                .unwrap();
-
-            #[cfg(not(target_os = "zkvm"))]
-            {
-                debug!("Withdrawal no. {}", withdrawal.index);
-                debug!("  Recipient: {:?}", withdrawal.address);
-                debug!("  Value: {}", amount_wei);
-            }
-            // Credit withdrawal amount
-            increase_account_balance(&mut evm.context.evm.db, withdrawal.address, amount_wei)?;
-            // Add withdrawal to trie
-            withdrawals_trie
-                .insert_rlp(&i.to_rlp(), withdrawal)
-                .context("failed to insert withdrawal")?;
-        }
-
+    
+        
         // Update result header with computed values
         header.transactions_root = tx_trie.hash();
         header.receipts_root = receipt_trie.hash();
         header.logs_bloom = logs_bloom;
         header.gas_used = cumulative_gas_used;
-        header.withdrawals_root = if spec_id < SpecId::SHANGHAI {
-            None
-        } else {
-            Some(withdrawals_trie.hash())
-        };
+        header.withdrawals_root = None;
 
         // Leak memory, save cycles
-        guest_mem_forget([tx_trie, receipt_trie, withdrawals_trie]);
+        guest_mem_forget([tx_trie, receipt_trie]);
         // Return block builder with updated database
         Ok(block_builder.with_db(evm.context.evm.db))
     }
 }
 
-pub fn fill_eth_tx_env(tx_env: &mut TxEnv, essence: &EthereumTxEssence, caller: Address) {
-    match essence {
-        EthereumTxEssence::Legacy(tx) => {
-            tx_env.caller = caller;
-            tx_env.gas_limit = tx.gas_limit.try_into().unwrap();
-            tx_env.gas_price = tx.gas_price;
-            tx_env.gas_priority_fee = None;
-            tx_env.transact_to = if let TransactionKind::Call(to_addr) = tx.to {
-                TransactTo::Call(to_addr)
-            } else {
-                TransactTo::create()
-            };
-            tx_env.value = tx.value;
-            tx_env.data = tx.data.clone();
-            tx_env.chain_id = tx.chain_id;
-            tx_env.nonce = Some(tx.nonce);
-            tx_env.access_list.clear();
-        }
-        EthereumTxEssence::Eip2930(tx) => {
-            tx_env.caller = caller;
-            tx_env.gas_limit = tx.gas_limit.try_into().unwrap();
-            tx_env.gas_price = tx.gas_price;
-            tx_env.gas_priority_fee = None;
-            tx_env.transact_to = if let TransactionKind::Call(to_addr) = tx.to {
-                TransactTo::Call(to_addr)
-            } else {
-                TransactTo::create()
-            };
-            tx_env.value = tx.value;
-            tx_env.data = tx.data.clone();
-            tx_env.chain_id = Some(tx.chain_id);
-            tx_env.nonce = Some(tx.nonce);
-            tx_env.access_list = tx.access_list.clone().into();
-        }
-        EthereumTxEssence::Eip1559(tx) => {
-            tx_env.caller = caller;
-            tx_env.gas_limit = tx.gas_limit.try_into().unwrap();
-            tx_env.gas_price = tx.max_fee_per_gas;
-            tx_env.gas_priority_fee = Some(tx.max_priority_fee_per_gas);
-            tx_env.transact_to = if let TransactionKind::Call(to_addr) = tx.to {
-                TransactTo::Call(to_addr)
-            } else {
-                TransactTo::create()
-            };
-            tx_env.value = tx.value;
-            tx_env.data = tx.data.clone();
-            tx_env.chain_id = Some(tx.chain_id);
-            tx_env.nonce = Some(tx.nonce);
-            tx_env.access_list = tx.access_list.clone().into();
-        }
-    };
-}
-
-pub fn increase_account_balance<D>(
-    db: &mut D,
-    address: Address,
-    amount_wei: U256,
-) -> anyhow::Result<()>
-where
-    D: Database + DatabaseCommit,
-    <D as Database>::Error: Debug,
-{
-    // Read account from database
-    let mut account: Account = db
-        .basic(address)
-        .map_err(|db_err| {
-            anyhow!(
-                "Error increasing account balance for {}: {:?}",
-                address,
-                db_err
-            )
-        })?
-        .unwrap_or_default()
-        .into();
-    // Credit withdrawal amount
-    account.info.balance = account.info.balance.checked_add(amount_wei).unwrap();
-    account.mark_touch();
-    // Commit changes to database
-    db.commit([(address, account)].into());
-
-    Ok(())
+pub fn fill_eth_tx_env(
+    l2_chain_spec: &ChainSpec,
+    tx_env: &mut TxEnv,
+    essence: &EthereumTxEssence,
+    caller: Address,
+    is_anchor: bool,
+) {
+    // claim the anchor
+    tx_env.taiko.is_anchor = is_anchor;
+    // set the treasury address
+    tx_env.taiko.treasury = l2_chain_spec.l2_contract.unwrap();
+    
+    ethereum::fill_eth_tx_env(tx_env, essence, caller);
 }

@@ -19,10 +19,9 @@ use zeth_primitives::{
     transactions::{ethereum::EthereumTxEssence, optimism::OptimismTxEssence, TxEssence},
     trie::MptNode,
 };
-
 use crate::{
     builder::{
-        execute::{ethereum::EthTxExecStrategy, optimism::OpTxExecStrategy, TxExecStrategy},
+        execute::{ethereum::EthTxExecStrategy, TxExecStrategy},
         finalize::{BlockFinalizeStrategy, MemDbBlockFinalizeStrategy},
         initialize::{DbInitStrategy, MemDbInitStrategy},
         prepare::{EthHeaderPrepStrategy, HeaderPrepStrategy},
@@ -31,6 +30,12 @@ use crate::{
     input::Input,
     mem_db::MemDb,
 };
+
+#[cfg(feature = "optimism")]
+pub use self::execute::optimism::OpTxExecStrategy;
+
+#[cfg(feature = "taiko")]
+pub use self::execute::taiko::TkoTxExecStrategy;
 
 mod execute;
 mod finalize;
@@ -133,12 +138,25 @@ impl BlockBuilderStrategy for EthereumStrategy {
 }
 
 /// The [BlockBuilderStrategy] for building an Optimism block.
+#[cfg(feature = "optimism")]
 pub struct OptimismStrategy {}
-
+#[cfg(feature = "optimism")]
 impl BlockBuilderStrategy for OptimismStrategy {
     type TxEssence = OptimismTxEssence;
     type DbInitStrategy = MemDbInitStrategy;
     type HeaderPrepStrategy = EthHeaderPrepStrategy;
     type TxExecStrategy = OpTxExecStrategy;
+    type BlockFinalizeStrategy = MemDbBlockFinalizeStrategy;
+}
+
+/// The [BlockBuilderStrategy] for building an Optimism block.
+#[cfg(feature = "taiko")]
+pub struct TaikoStrategy {}
+#[cfg(feature = "taiko")]
+impl BlockBuilderStrategy for TaikoStrategy {
+    type TxEssence = EthereumTxEssence;
+    type DbInitStrategy = MemDbInitStrategy;
+    type HeaderPrepStrategy = EthHeaderPrepStrategy;
+    type TxExecStrategy = TkoTxExecStrategy;
     type BlockFinalizeStrategy = MemDbBlockFinalizeStrategy;
 }

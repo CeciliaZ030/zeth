@@ -16,6 +16,9 @@ ruint = { version = "1.10", default-features = false }
 serde = "1.0"
 thiserror = "1.0"
 zeth-primitives = { path = "../primitives", features = ["revm", "ethers"] }
+alloy-primitives = { version = "0.6", default-features = false, features = [
+    "rlp",
+] }
 
 [target.'cfg(not(target_os = "zkvm"))'.dependencies]
 chrono = { version = "0.4", default-features = false }
@@ -30,3 +33,8 @@ zeth-primitives = { path = "../primitives", features = ["revm", "ethers"] }
 [dev-dependencies]
 bincode = "1.3"
 serde_with = "3.1"
+
+[features]
+default = ["optimism"]
+taiko = ["revm/taiko"]
+optimism = ["revm/optimism"]

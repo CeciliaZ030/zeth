@@ -13,6 +13,7 @@
 // limitations under the License.
 
 extern crate core;
+extern crate alloc;
 
 #[cfg(not(target_os = "zkvm"))]
 pub mod host;
@@ -22,6 +23,7 @@ pub mod consts;
 pub mod input;
 pub mod mem_db;
 pub mod optimism;
+pub mod taiko;
 
 mod utils;
 
