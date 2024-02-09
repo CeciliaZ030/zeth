@@ -173,10 +173,10 @@ impl Provider for CachedRpcProvider {
             let cache_block_out  = self.cache
                 .get_full_block(&BlockQuery {block_no: block_no})
                 .map(|b| b.transactions.iter().filter(|tx| tx.hash == query.tx_hash).collect::<Vec<_>>())
-                .map(|txs| txs.pop());
+                .map(|txs| txs.first());
             if let Ok(tx_op) = cache_block_out {
                 if let Some(tx) = tx_op {
-                    return Ok(tx.clone())
+                    return Ok(*tx.clone())
                 }
             }   
         }

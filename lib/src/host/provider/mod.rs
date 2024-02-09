@@ -151,12 +151,13 @@ impl dyn Provider {
                 to_block: l1_block_no,
             }
         )?;
-        let res = logs
+        let mut res = logs
             .iter()
             .filter(|log| log.topics.len() == <<BlockProposed as SolEvent>::TopicList as TopicList>::COUNT)
             .filter(|log| from_ethers_h256(log.topics[0]) == BlockProposed::SIGNATURE_HASH)
             .map(|log| {
-                let block_proposed =  <BlockProposed as SolEvent>::decode_log(log,true)
+                let topics = log.topics.iter().map(|topic| from_ethers_h256(*topic));
+                let block_proposed = BlockProposed::decode_raw_log(topics, &log.data, false)
                     .expect(&format!("Decode log failed for l1_block_no {}", l1_block_no));
                 (log.block_number, log.transaction_hash, block_proposed)
             })
@@ -173,6 +174,6 @@ impl dyn Provider {
             })
             .with_context(|| anyhow!("Cannot find BlockProposed Tx {:?}", tx_hash))?;
 
-        Ok((tx, event.data))
+        Ok((tx, event))
     }
 }
