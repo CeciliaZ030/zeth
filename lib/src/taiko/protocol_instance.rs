@@ -2,6 +2,7 @@ use alloy_sol_types::SolValue;
 use anyhow::{Result, anyhow};
 use alloy_primitives::{Address, TxHash, B256};
 use revm::primitives::SpecId;
+use serde_json::to_string;
 use zeth_primitives::{block::Header, ethers::{from_ethers_h256, from_ethers_u256}, keccak::keccak, transactions::EthereumTransaction};
 use crate::consts::TKO_MAINNET_CHAIN_SPEC;
 
@@ -105,7 +106,7 @@ pub fn assemble_protocol_instance(sys: &TaikoSystemInfo, header: &Header) -> Res
         },
         prover: sys.prover,
     };
-    verify(header, &mut pi, sys)?;
+    verify(sys, header, &mut pi)?;
     Ok(pi)
 }
 
@@ -119,8 +120,7 @@ pub fn verify(sys: &TaikoSystemInfo, header: &Header, pi: &mut ProtocolInstance)
             pi.block_metadata
         ));
     }
-    // println!("Protocol instance Transition: {:?}", pi.transition);
-    // check the block hash
+    // Check the block hash
     if Some(header.hash()) != sys.l2_fini_block.hash.map(from_ethers_h256) {
         let txs: Vec<EthereumTransaction> = sys
             .l2_fini_block
@@ -129,9 +129,9 @@ pub fn verify(sys: &TaikoSystemInfo, header: &Header, pi: &mut ProtocolInstance)
             .filter_map(|tx| tx.clone().try_into().ok())
             .collect();
         return Err(anyhow!(
-            "block hash mismatch, expected: {}, got: {}",
-            to_string(&txs).unwrap_or_default(),
-            to_string(&header.transactions).unwrap_or_default(),
+            "block hash mismatch, expected: {}, got: {}", 
+            header.hash(), 
+            sys.l2_fini_block.hash.map(from_ethers_h256).unwrap()
         ));
     }
 

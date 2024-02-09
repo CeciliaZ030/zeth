@@ -141,4 +141,41 @@ impl Provider for CachedRpcProvider {
 
         Ok(out)
     }
+
+    #[cfg(feature = "taiko")]
+    fn get_logs(&mut self, query: &LogsQuery) -> Result<Vec<Log>> {
+        let cache_out = self.cache.get_logs(query);
+        if cache_out.is_ok() {
+            return cache_out;
+        }
+
+        let out = self.rpc.get_logs(query)?;
+        self.cache.insert_logs(query.clone(), out);
+
+        Ok(out)
+    }
+
+    #[cfg(feature = "taiko")]
+    fn get_transaction(&mut self, query: &super::TxQuery) -> Result<Transaction> {
+        let mut cache_out = self.cache.get_transaction(query);
+        if cache_out.is_ok() {
+            return cache_out;
+        }
+
+        // Search cached block for target Tx
+        let cache_block_out  = self.cache
+            .get_full_block(&BlockQuery {block_no: query.block_no})
+            .map(|b| b.transactions.iter().filter(|tx| tx.hash == query.tx_hash).collect::<Vec<_>>())
+            .map(|txs| txs.pop());
+        if let Ok(tx_op) = cache_block_out {
+            if let Some(tx) = tx_op {
+                return Ok(tx)
+            }
+        }
+
+        let out = self.rpc.get_transaction(query)?;
+        self.cache.insert_transaction(query.clone(), out);
+
+        Ok(out)
+    }
 }

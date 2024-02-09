@@ -14,7 +14,7 @@
 
 use anyhow::{anyhow, Result};
 use ethers_core::types::{
-    Block, Bytes, EIP1186ProofResponse, Transaction, TransactionReceipt, H256, U256,
+    Block, Bytes, EIP1186ProofResponse, Filter, Transaction, TransactionReceipt, H256, U256
 };
 use ethers_providers::{Http, Middleware, RetryClient};
 use log::info;
@@ -138,6 +138,31 @@ impl Provider for RpcProvider {
         let out = self.tokio_handle.block_on(async {
             self.http_client
                 .get_storage_at(query.address, query.index, Some(query.block_no.into()))
+                .await
+        })?;
+
+        Ok(out)
+    }
+
+    #[cfg(feature = "taiko")]
+    fn get_logs(&mut self, query: &LogsQuery) -> Result<Vec<Log>> {
+        info!("Querying RPC for logs: {:?}", query);
+
+        let out = self.tokio_handle.block_on(async {
+            self.http_client
+                .get_logs(&Filter::new().address(query.l1_contract).from_block(query.l1_block_no).to_block(query.l1_block_no))
+                .await
+        })?;
+
+        Ok(out)
+    }
+
+    #[cfg(feature = "taiko")]
+    fn get_transaction(&mut self, query: &super::TxQuery) -> Result<Transaction> {
+        info!("Querying RPC for tx: {:?}", query);
+        let out = self.tokio_handle.block_on(async {
+            self.http_client
+                .get_transaction(query.tx_hash)
                 .await
         })?;
 

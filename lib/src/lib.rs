@@ -23,6 +23,8 @@ pub mod consts;
 pub mod input;
 pub mod mem_db;
 pub mod optimism;
+
+#[cfg(feature = "taiko")]
 pub mod taiko;
 
 mod utils;

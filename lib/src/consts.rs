@@ -82,7 +82,8 @@ pub static TKO_MAINNET_CHAIN_SPEC: Lazy<ChainSpec> = Lazy::new(|| {
     }
 });
 
-
+#[cfg(feature = "taiko")]
+pub use crate::taiko::consts::testnet::*;
 
 /// The Optimism mainnet specification.
 #[cfg(feature = "optimism")]
