@@ -24,6 +24,12 @@ use super::{
     ProofQuery, Provider, StorageQuery,
 };
 
+#[cfg(feature = "taiko")]
+use crate::host::provider::{LogsQuery, TxQuery};
+#[cfg(feature = "taiko")]
+use ethers_core::types::Log;
+
+
 pub struct CachedRpcProvider {
     cache: FileProvider,
     rpc: RpcProvider,
@@ -163,14 +169,16 @@ impl Provider for CachedRpcProvider {
         }
 
         // Search cached block for target Tx
-        let cache_block_out  = self.cache
-            .get_full_block(&BlockQuery {block_no: query.block_no})
-            .map(|b| b.transactions.iter().filter(|tx| tx.hash == query.tx_hash).collect::<Vec<_>>())
-            .map(|txs| txs.pop());
-        if let Ok(tx_op) = cache_block_out {
-            if let Some(tx) = tx_op {
-                return Ok(tx)
-            }
+        if let Some(block_no) = query.block_no {
+            let cache_block_out  = self.cache
+                .get_full_block(&BlockQuery {block_no: block_no})
+                .map(|b| b.transactions.iter().filter(|tx| tx.hash == query.tx_hash).collect::<Vec<_>>())
+                .map(|txs| txs.pop());
+            if let Ok(tx_op) = cache_block_out {
+                if let Some(tx) = tx_op {
+                    return Ok(tx.clone())
+                }
+            }   
         }
 
         let out = self.rpc.get_transaction(query)?;

@@ -153,21 +153,18 @@ impl dyn Provider {
         )?;
         let res = logs
             .iter()
-            .filter(|log| log.topics().len() == <<BlockProposed as SolEvent>::TopicList as TopicList>::COUNT)
-            .filter(|log| from_ethers_h256(log.topics()[0]) == BlockProposed::SIGNATURE_HASH)
+            .filter(|log| log.topics.len() == <<BlockProposed as SolEvent>::TopicList as TopicList>::COUNT)
+            .filter(|log| from_ethers_h256(log.topics[0]) == BlockProposed::SIGNATURE_HASH)
             .map(|log| {
-                let block_proposed =  <BlockProposed as SolEvent>::decode_log(
-                    alloy_primitives::Log {address: log.address, data: log.data }, 
-                    true
-                )
-                .with_context(|| anyhow!("Decode log failed for l1_block_no {}", l1_block_no))?;
+                let block_proposed =  <BlockProposed as SolEvent>::decode_log(log,true)
+                    .expect(&format!("Decode log failed for l1_block_no {}", l1_block_no));
                 (log.block_number, log.transaction_hash, block_proposed)
             })
             .filter(|(block_no, tx_hash, event)| event.blockId == revm::primitives::U256::from(l2_block_no))
             .collect::<Vec<_>>();
 
         let (block_no, tx_hash, event) = res.pop()
-            .with_context(|| anyhow!("Cannot find BlockProposed event for {}" l2_block_no))?;
+            .with_context(|| anyhow!("Cannot find BlockProposed event for {}", l2_block_no))?;
 
         let tx = self
             .get_transaction(& TxQuery { 

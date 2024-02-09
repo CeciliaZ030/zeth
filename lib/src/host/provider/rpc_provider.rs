@@ -21,6 +21,11 @@ use log::info;
 
 use super::{AccountQuery, BlockQuery, ProofQuery, Provider, StorageQuery};
 
+#[cfg(feature = "taiko")]
+use crate::host::provider::{LogsQuery, TxQuery};
+#[cfg(feature = "taiko")]
+use ethers_core::types::Log;
+
 pub struct RpcProvider {
     http_client: ethers_providers::Provider<RetryClient<Http>>,
     tokio_handle: tokio::runtime::Handle,
@@ -150,7 +155,7 @@ impl Provider for RpcProvider {
 
         let out = self.tokio_handle.block_on(async {
             self.http_client
-                .get_logs(&Filter::new().address(query.l1_contract).from_block(query.l1_block_no).to_block(query.l1_block_no))
+                .get_logs(&Filter::new().address(query.address).from_block(query.from_block).to_block(query.to_block))
                 .await
         })?;
 
@@ -165,7 +170,9 @@ impl Provider for RpcProvider {
                 .get_transaction(query.tx_hash)
                 .await
         })?;
-
-        Ok(out)
+        match out {
+            Some(out) => Ok(out),
+            None => Err(anyhow!("No data for {:?}", query)),
+        }
     }
 }

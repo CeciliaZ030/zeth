@@ -231,13 +231,13 @@ impl MutProvider for FileProvider {
 
     #[cfg(feature = "taiko")]
     fn insert_logs(&mut self, query: LogsQuery, val: Vec<Log>) {
-        self.storage.insert(query, val);
+        self.logs.insert(query, val);
         self.dirty = true;
     }
 
     #[cfg(feature = "taiko")]
     fn insert_transaction(&mut self, query: super::TxQuery, val: Transaction) {
-        self.transaction.insert(query, val);
+        self.transactions.insert(query, val);
         self.dirty = true;
     }
 }
