@@ -13,18 +13,17 @@
 // limitations under the License.
 
 use anyhow::{anyhow, Result};
+// #[cfg(feature = "taiko")]
+use ethers_core::types::Log;
 use ethers_core::types::{
-    Block, Bytes, EIP1186ProofResponse, Filter, Transaction, TransactionReceipt, H256, U256
+    Block, Bytes, EIP1186ProofResponse, Filter, Transaction, TransactionReceipt, H256, U256,
 };
 use ethers_providers::{Http, Middleware, RetryClient};
 use log::info;
 
 use super::{AccountQuery, BlockQuery, ProofQuery, Provider, StorageQuery};
-
-#[cfg(feature = "taiko")]
+// #[cfg(feature = "taiko")]
 use crate::host::provider::{LogsQuery, TxQuery};
-#[cfg(feature = "taiko")]
-use ethers_core::types::Log;
 
 pub struct RpcProvider {
     http_client: ethers_providers::Provider<RetryClient<Http>>,
@@ -149,27 +148,30 @@ impl Provider for RpcProvider {
         Ok(out)
     }
 
-    #[cfg(feature = "taiko")]
+    // #[cfg(feature = "taiko")]
     fn get_logs(&mut self, query: &LogsQuery) -> Result<Vec<Log>> {
         info!("Querying RPC for logs: {:?}", query);
 
         let out = self.tokio_handle.block_on(async {
             self.http_client
-                .get_logs(&Filter::new().address(query.address).from_block(query.from_block).to_block(query.to_block))
+                .get_logs(
+                    &Filter::new()
+                        .address(query.address)
+                        .from_block(query.from_block)
+                        .to_block(query.to_block),
+                )
                 .await
         })?;
 
         Ok(out)
     }
 
-    #[cfg(feature = "taiko")]
+    // #[cfg(feature = "taiko")]
     fn get_transaction(&mut self, query: &super::TxQuery) -> Result<Transaction> {
         info!("Querying RPC for tx: {:?}", query);
-        let out = self.tokio_handle.block_on(async {
-            self.http_client
-                .get_transaction(query.tx_hash)
-                .await
-        })?;
+        let out = self
+            .tokio_handle
+            .block_on(async { self.http_client.get_transaction(query.tx_hash).await })?;
         match out {
             Some(out) => Ok(out),
             None => Err(anyhow!("No data for {:?}", query)),

@@ -15,6 +15,8 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
+// #[cfg(feature = "taiko")]
+use ethers_core::types::Log;
 use ethers_core::types::{
     Block, Bytes, EIP1186ProofResponse, Transaction, TransactionReceipt, H256, U256,
 };
@@ -23,12 +25,8 @@ use super::{
     file_provider::FileProvider, rpc_provider::RpcProvider, AccountQuery, BlockQuery, MutProvider,
     ProofQuery, Provider, StorageQuery,
 };
-
-#[cfg(feature = "taiko")]
+// #[cfg(feature = "taiko")]
 use crate::host::provider::{LogsQuery, TxQuery};
-#[cfg(feature = "taiko")]
-use ethers_core::types::Log;
-
 
 pub struct CachedRpcProvider {
     cache: FileProvider,
@@ -148,7 +146,7 @@ impl Provider for CachedRpcProvider {
         Ok(out)
     }
 
-    #[cfg(feature = "taiko")]
+    // #[cfg(feature = "taiko")]
     fn get_logs(&mut self, query: &LogsQuery) -> Result<Vec<Log>> {
         let cache_out = self.cache.get_logs(query);
         if cache_out.is_ok() {
@@ -161,7 +159,7 @@ impl Provider for CachedRpcProvider {
         Ok(out)
     }
 
-    #[cfg(feature = "taiko")]
+    // #[cfg(feature = "taiko")]
     fn get_transaction(&mut self, query: &super::TxQuery) -> Result<Transaction> {
         let mut cache_out = self.cache.get_transaction(query);
         if cache_out.is_ok() {
@@ -170,15 +168,21 @@ impl Provider for CachedRpcProvider {
 
         // Search cached block for target Tx
         if let Some(block_no) = query.block_no {
-            let cache_block_out  = self.cache
-                .get_full_block(&BlockQuery {block_no: block_no})
-                .map(|b| b.transactions.iter().filter(|tx| tx.hash == query.tx_hash).collect::<Vec<_>>())
+            let cache_block_out = self
+                .cache
+                .get_full_block(&BlockQuery { block_no: block_no })
+                .map(|b| {
+                    b.transactions
+                        .iter()
+                        .filter(|tx| tx.hash == query.tx_hash)
+                        .collect::<Vec<_>>()
+                })
                 .map(|txs| txs.first());
             if let Ok(tx_op) = cache_block_out {
                 if let Some(tx) = tx_op {
-                    return Ok(*tx.clone())
+                    return Ok(*tx.clone());
                 }
-            }   
+            }
         }
 
         let out = self.rpc.get_transaction(query)?;
