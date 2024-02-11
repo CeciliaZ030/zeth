@@ -63,13 +63,13 @@ pub static ETH_MAINNET_CHAIN_SPEC: Lazy<ChainSpec> = Lazy::new(|| {
 });
 
 /// The Taiko mainnet specification.
-#[cfg(feature = "taiko")]
+// #[cfg(feature = "taiko")]
 pub static TKO_MAINNET_CHAIN_SPEC: Lazy<ChainSpec> = Lazy::new(|| {
     ChainSpec {
         chain_id: 1,
         hard_forks: BTreeMap::from([
             (SpecId::SHANGHAI, ForkCondition::Block(0)),
-            (SpecId::KATLA, ForkCondition::Block(0)),
+            (SpecId::SHANGHAI /*change*/, ForkCondition::Block(0)),
             // previous versions not supported
             (SpecId::CANCUN, ForkCondition::TBD),
         ]),
@@ -82,7 +82,7 @@ pub static TKO_MAINNET_CHAIN_SPEC: Lazy<ChainSpec> = Lazy::new(|| {
     }
 });
 
-#[cfg(feature = "taiko")]
+// #[cfg(feature = "taiko")]
 pub use crate::taiko::consts::testnet::*;
 
 /// The Optimism mainnet specification.

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate core;
 extern crate alloc;
+extern crate core;
 
 #[cfg(not(target_os = "zkvm"))]
 pub mod host;
@@ -24,7 +24,7 @@ pub mod input;
 pub mod mem_db;
 pub mod optimism;
 
-#[cfg(feature = "taiko")]
+// #[cfg(feature = "taiko")]
 pub mod taiko;
 
 mod utils;

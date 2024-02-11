@@ -12,36 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use core::{fmt::Debug, mem::take};
-use core::str::from_utf8;
+use core::{fmt::Debug, mem::take, str::from_utf8};
 
 use alloy_primitives::hex::decode;
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
+use ethers_core::types::Transaction as EthersTransaction;
 #[cfg(not(target_os = "zkvm"))]
 use log::debug;
-use revm::taiko;
+use log::info;
 use revm::{
     interpreter::Host,
     primitives::{Address, ResultAndState, SpecId, TransactTo, TxEnv},
-    Database, DatabaseCommit, Evm,
+    taiko, Database, DatabaseCommit, Evm,
 };
+use rlp::{Decodable, DecoderError, Rlp};
 use ruint::aliases::U256;
 use zeth_primitives::{
-    receipt::Receipt,
-    transactions::{
+    block::Header, receipt::Receipt, transactions::{
         ethereum::{EthereumTxEssence, TransactionKind},
         TxEssence,
-    },
-    trie::MptNode,
-    Bloom, Bytes, RlpBytes,
+    }, trie::MptNode, Bloom, Bytes, RlpBytes
 };
-use crate::consts::ChainSpec;
-use crate::taiko::decode_anchor;
+
 use super::{ethereum, TxExecStrategy};
-use crate::{builder::BlockBuilder, consts, guest_mem_forget};
+use crate::{
+    builder::{prepare::EthHeaderPrepStrategy, BlockBuilder, TaikoStrategy}, consts::{self, ChainSpec}, guest_mem_forget, 
+    host::{preflight::{new_preflight_input, Data, Preflight}, 
+    provider::{new_provider, BlockQuery}, provider_db::ProviderDb}, taiko::{consts::{MAX_TX_LIST, MAX_TX_LIST_BYTES}, decode_anchor, provider::TaikoProvider}
+};
 
 /// Minimum supported protocol version: Bedrock (Block no. 105235063).
-const MIN_SPEC_ID: SpecId = SpecId::KATLA; //Todo: change
+const MIN_SPEC_ID: SpecId = SpecId::SHANGHAI /*change*/; 
 
 pub struct TkoTxExecStrategy {}
 
@@ -223,10 +224,8 @@ impl TxExecStrategy<EthereumTxEssence> for TkoTxExecStrategy {
             receipt_trie
                 .insert_rlp(&trie_key, receipt)
                 .context("failed to insert receipt")?;
-        
         }
-    
-        
+
         // Update result header with computed values
         header.transactions_root = tx_trie.hash();
         header.receipts_root = receipt_trie.hash();
@@ -251,7 +250,110 @@ pub fn fill_eth_tx_env(
     // claim the anchor
     tx_env.taiko.is_anchor = is_anchor;
     // set the treasury address
-    tx_env.taiko.treasury = l2_chain_spec.l2_contract.unwrap();
-    
+    tx_env.taiko.treasury = *crate::taiko::consts::testnet::L2_CONTRACT;
+
     ethereum::fill_eth_tx_env(tx_env, essence, caller);
+}
+
+impl Preflight<EthereumTxEssence> for TaikoStrategy {
+    fn run_preflight(
+        chain_spec: ChainSpec,
+        cache_path: Option<std::path::PathBuf>,
+        rpc_url: Option<String>,
+        block_no: u64,
+    ) -> Result<crate::host::preflight::Data<EthereumTxEssence>> {
+        let mut tp = TaikoProvider::new(None, None, cache_path, rpc_url)?;
+
+        // Fetch the parent block
+        let parent_block = tp.l2_provider.get_partial_block(&BlockQuery {
+            block_no: block_no - 1,
+        })?;
+
+        info!(
+            "Initial block: {:?} ({:?})",
+            parent_block.number.unwrap(),
+            parent_block.hash.unwrap()
+        );
+        let parent_header: Header = parent_block.try_into().context("invalid parent block")?;
+
+        // Fetch the target block
+        let mut block = tp.l2_provider.get_full_block(&BlockQuery { block_no })?;
+        let (anchor_tx, anchor_call) = tp.get_anchor(&block)?;
+        let (proposal_call, _) = tp.get_proposal(anchor_call.l1Height, block_no)?;
+        
+        let mut l2_tx_list: Vec<EthersTransaction> = rlp_decode_list(&proposal_call.txList)?;
+        ensure!(proposal_call.txList.len() <= MAX_TX_LIST_BYTES, "tx list bytes must be not more than MAX_TX_LIST_BYTES");
+        ensure!(l2_tx_list.len() <=  MAX_TX_LIST, "tx list size must be not more than MAX_TX_LISTs");
+        
+        // TODO(Cecilia): reset to empty necessary if wrong? 
+        // tracing::log for particular reason instead of uniform error handling?
+        // txs.clear();
+        
+        info!(
+            "Inserted anchor {:?} in tx_list decoded from {:?}",
+            anchor_tx.hash,
+            proposal_call.txList
+        );
+        l2_tx_list.insert(0, anchor_tx);
+        block.transactions = l2_tx_list;
+
+        info!(
+            "Final block number: {:?} ({:?})",
+            block.number.unwrap(),
+            block.hash.unwrap()
+        );
+        info!("Transaction count: {:?}", block.transactions.len());
+
+
+        // Create the provider DB
+        let provider_db = ProviderDb::new(tp.l2_provider, parent_header.number);
+
+        // Create the input data
+        let input = new_preflight_input(block.clone(), parent_header.clone())?;
+        let transactions = input.transactions.clone();
+        let withdrawals = input.withdrawals.clone();
+
+        // Create the block builder, run the transactions and extract the DB
+        let mut builder = BlockBuilder::new(&chain_spec, input)
+            .with_db(provider_db)
+            .prepare_header::<EthHeaderPrepStrategy>()?
+            .execute_transactions::<TkoTxExecStrategy::TxExecStrategy>()?;
+        let provider_db = builder.mut_db().unwrap();
+
+        info!("Gathering inclusion proofs ...");
+
+        // Gather inclusion proofs for the initial and final state
+        let parent_proofs = provider_db.get_initial_proofs()?;
+        let proofs = provider_db.get_latest_proofs()?;
+
+        // Gather proofs for block history
+        let ancestor_headers = provider_db.get_ancestor_headers()?;
+
+        info!("Saving provider cache ...");
+
+        // Save the provider cache
+        provider_db.get_provider().save()?;
+
+        info!("Provider-backed execution is Done!");
+
+        Ok(Data {
+            db: provider_db.get_initial_db().clone(),
+            parent_header,
+            parent_proofs,
+            header: block.try_into().context("invalid block")?,
+            transactions,
+            withdrawals,
+            proofs,
+            ancestor_headers,
+        })
+
+    }
+}
+
+fn rlp_decode_list<T>(bytes: &[u8]) -> Result<Vec<T>, DecoderError>
+where
+    T: Decodable,
+{
+    let rlp = Rlp::new(bytes);
+    rlp.as_list()
 }

@@ -3691,6 +3691,7 @@ dependencies = [
  "log",
  "once_cell",
  "revm",
+ "rlp",
  "ruint",
  "serde",
  "serde_json",

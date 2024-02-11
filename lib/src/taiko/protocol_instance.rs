@@ -6,7 +6,7 @@ use serde_json::to_string;
 use zeth_primitives::{block::Header, ethers::{from_ethers_h256, from_ethers_u256}, keccak::keccak, transactions::EthereumTransaction};
 use crate::consts::TKO_MAINNET_CHAIN_SPEC;
 
-use super::{consts::ANCHOR_GAS_LIMIT, BlockMetadata, EthDeposit, TaikoSystemInfo, Transition};
+use super::{consts::ANCHOR_GAS_LIMIT, TaikoSystemInfo, BlockMetadata, EthDeposit, Transition};
 
 
 
@@ -111,7 +111,6 @@ pub fn assemble_protocol_instance(sys: &TaikoSystemInfo, header: &Header) -> Res
 }
 
 pub fn verify(sys: &TaikoSystemInfo, header: &Header, pi: &mut ProtocolInstance) -> Result<()> {
-    use alloy_sol_types::SolValue;
     // check the block metadata
     if pi.block_metadata.abi_encode() != sys.block_proposed.meta.abi_encode() {
         return Err(anyhow!(
@@ -121,9 +120,9 @@ pub fn verify(sys: &TaikoSystemInfo, header: &Header, pi: &mut ProtocolInstance)
         ));
     }
     // Check the block hash
-    if Some(header.hash()) != sys.l2_fini_block.hash.map(from_ethers_h256) {
+    if Some(header.hash()) != sys.l2_block.hash.map(from_ethers_h256) {
         let txs: Vec<EthereumTransaction> = sys
-            .l2_fini_block
+            .l2_block
             .transactions
             .iter()
             .filter_map(|tx| tx.clone().try_into().ok())
@@ -131,7 +130,7 @@ pub fn verify(sys: &TaikoSystemInfo, header: &Header, pi: &mut ProtocolInstance)
         return Err(anyhow!(
             "block hash mismatch, expected: {}, got: {}", 
             header.hash(), 
-            sys.l2_fini_block.hash.map(from_ethers_h256).unwrap()
+            sys.l2_block.hash.map(from_ethers_h256).unwrap()
         ));
     }
 
