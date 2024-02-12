@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use anyhow::{anyhow, Result};
-// #[cfg(feature = "taiko")]
+#[cfg(feature = "taiko")]
 use ethers_core::types::Log;
 use ethers_core::types::{
     Block, Bytes, EIP1186ProofResponse, Filter, Transaction, TransactionReceipt, H256, U256,
@@ -22,7 +22,7 @@ use ethers_providers::{Http, Middleware, RetryClient};
 use log::info;
 
 use super::{AccountQuery, BlockQuery, ProofQuery, Provider, StorageQuery};
-// #[cfg(feature = "taiko")]
+#[cfg(feature = "taiko")]
 use crate::host::provider::{LogsQuery, TxQuery};
 
 pub struct RpcProvider {
@@ -148,7 +148,7 @@ impl Provider for RpcProvider {
         Ok(out)
     }
 
-    // #[cfg(feature = "taiko")]
+    #[cfg(feature = "taiko")]
     fn get_logs(&mut self, query: &LogsQuery) -> Result<Vec<Log>> {
         info!("Querying RPC for logs: {:?}", query);
 
@@ -166,7 +166,7 @@ impl Provider for RpcProvider {
         Ok(out)
     }
 
-    // #[cfg(feature = "taiko")]
+    #[cfg(feature = "taiko")]
     fn get_transaction(&mut self, query: &super::TxQuery) -> Result<Transaction> {
         info!("Querying RPC for tx: {:?}", query);
         let out = self

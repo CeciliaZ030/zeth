@@ -8,8 +8,8 @@ use thiserror::Error as ThisError;
 use zeth_primitives::{ethers::{from_ethers_h160, from_ethers_h256}, transactions::{ethereum::EthereumTxEssence, TxEssence}, withdrawal::Withdrawal};
 use ethers_core::types::{Block, Transaction, H160, H256, U256, U64};
 use ethers_core::types::{Transaction as EthersTransaction};
-
-use crate::{builder::TkoTxExecStrategy, consts::ChainSpec, host::provider::{new_cached_rpc_provider, new_file_provider, new_provider, new_rpc_provider, BlockQuery, ProofQuery, Provider, TxQuery}, 
+use crate::host::preflight::Preflight;
+use crate::{builder::{TaikoStrategy, TkoTxExecStrategy}, consts::ChainSpec, host::provider::{new_cached_rpc_provider, new_file_provider, new_provider, new_rpc_provider, BlockQuery, ProofQuery, Provider, TxQuery}, 
 input::Input, taiko::consts::{check_anchor_signature, ANCHOR_GAS_LIMIT, GOLDEN_TOUCH_ACCOUNT}};
 
 use self::provider::TaikoProvider;
@@ -108,7 +108,7 @@ pub struct TaikoSystemInfo {
 
 impl TaikoSystemInfo {
     pub fn new(
-        tp: &TaikoProvider,
+        tp: &mut TaikoProvider,
         l2_block_no: u64,
         prover: Address,
         graffiti: B256,
@@ -197,24 +197,24 @@ async fn init_taiko(
     l2_block_no: u64,
     graffiti: B256,
 ) -> Result<(Input<EthereumTxEssence>, TaikoSystemInfo)> {
-    let tp = TaikoProvider::new(
-        args.l1_cache,
-        args.l1_rpc,
-        args.l2_cache,
-        args.l2_rpc,
+    let mut tp = TaikoProvider::new(
+        args.l1_cache.clone(),
+        args.l1_rpc.clone(),
+        args.l2_cache.clone(),
+        args.l2_rpc.clone(),
     )?
     .with_prover(args.prover)
-    .with_l2_spec(l2_chain_spec)
+    .with_l2_spec(l2_chain_spec.clone())
     .with_contracts(|| {
         use crate::taiko::consts::testnet::*;
         (*L1_CONTRACT, *L2_CONTRACT, *L1_SIGNAL_SERVICE, *L2_SIGNAL_SERVICE)
     });
     
-    let sys_info = TaikoSystemInfo::new(&tp, l2_block_no, args.prover, graffiti)?;
+    let sys_info = TaikoSystemInfo::new(&mut tp, l2_block_no, args.prover, graffiti)?;
     tp.save()?;
 
     let preflight_result = tokio::task::spawn_blocking(move || {
-        TkoTxExecStrategy::run_preflight(l2_chain_spec, args.l2_cache, args.l2_rpc, l2_block_no)
+        TaikoStrategy::run_preflight(l2_chain_spec, args.l2_cache, args.l2_rpc, l2_block_no)
     })
     .await?;
     let preflight_data = preflight_result.context("preflight failed")?;

@@ -22,7 +22,7 @@ use ethers_core::types::{
 };
 use serde::{Deserialize, Serialize};
 
-// #[cfg(feature = "taiko")]
+#[cfg(feature = "taiko")]
 use crate::taiko::BlockProposed;
 
 pub mod cached_rpc_provider;
@@ -54,7 +54,7 @@ pub struct StorageQuery {
     pub index: H256,
 }
 
-// #[cfg(feature = "taiko")]
+#[cfg(feature = "taiko")]
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct LogsQuery {
     pub address: H160,
@@ -62,7 +62,7 @@ pub struct LogsQuery {
     pub to_block: u64,
 }
 
-// #[cfg(feature = "taiko")]
+#[cfg(feature = "taiko")]
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TxQuery {
     pub tx_hash: H256,
@@ -80,9 +80,9 @@ pub trait Provider: Send {
     fn get_balance(&mut self, query: &AccountQuery) -> Result<U256>;
     fn get_code(&mut self, query: &AccountQuery) -> Result<Bytes>;
     fn get_storage(&mut self, query: &StorageQuery) -> Result<H256>;
-    // #[cfg(feature = "taiko")]
+    #[cfg(feature = "taiko")]
     fn get_logs(&mut self, query: &LogsQuery) -> Result<Vec<Log>>;
-    // #[cfg(feature = "taiko")]
+    #[cfg(feature = "taiko")]
     fn get_transaction(&mut self, query: &TxQuery) -> Result<Transaction>;
 }
 
@@ -95,9 +95,9 @@ pub trait MutProvider: Provider {
     fn insert_balance(&mut self, query: AccountQuery, val: U256);
     fn insert_code(&mut self, query: AccountQuery, val: Bytes);
     fn insert_storage(&mut self, query: StorageQuery, val: H256);
-    // #[cfg(feature = "taiko")]
+    #[cfg(feature = "taiko")]
     fn insert_logs(&mut self, query: LogsQuery, val: Vec<Log>);
-    // #[cfg(feature = "taiko")]
+    #[cfg(feature = "taiko")]
     fn insert_transaction(&mut self, query: TxQuery, val: Transaction);
 }
 
@@ -135,7 +135,7 @@ pub fn new_provider(
 use alloy_sol_types::TopicList;
 use zeth_primitives::ethers::from_ethers_h256;
 
-// #[cfg(feature = "taiko")]
+#[cfg(feature = "taiko")]
 impl dyn Provider {
     pub fn filter_event_log<E: SolEvent>(
         &mut self,

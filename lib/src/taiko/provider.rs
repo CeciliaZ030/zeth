@@ -69,17 +69,17 @@ impl TaikoProvider {
         self
     }
 
-    pub fn save(&self) -> Result<()> {
+    pub fn save(&mut self) -> Result<()> {
         self.l1_provider.save()?;
         self.l2_provider.save()?;
         Ok(())
     }
 
-    pub fn get_l1_full_block(&self, l1_block_no: u64) -> Result<Block<Transaction>> {
+    pub fn get_l1_full_block(&mut self, l1_block_no: u64) -> Result<Block<Transaction>> {
         self.l1_provider.get_full_block(&BlockQuery { block_no: l1_block_no })
     }
 
-    pub fn get_l2_full_block(&self, l2_block_no: u64) -> Result<Block<Transaction>> {
+    pub fn get_l2_full_block(&mut self, l2_block_no: u64) -> Result<Block<Transaction>> {
         self.l2_provider.get_full_block(&BlockQuery { block_no: l2_block_no })
     }
 
@@ -89,7 +89,7 @@ impl TaikoProvider {
         Ok((tx, call))
     }
 
-    pub fn get_proposal(&self, l1_block_no: u64, l2_block_no: u64) -> Result<(proposeBlockCall, BlockProposed)> {
+    pub fn get_proposal(&mut self, l1_block_no: u64, l2_block_no: u64) -> Result<(proposeBlockCall, BlockProposed)> {
         let logs = self.l1_provider.filter_event_log::<BlockProposed>(
             self.l1_contract.unwrap(),
             l1_block_no,
@@ -112,7 +112,7 @@ impl TaikoProvider {
     }
 
     pub fn check_anchor_with_blocks<TX1, TX2>(
-        &self,
+        &mut self,
         l1_block: &Block<TX1>,
         l2_parent_block: &Block<TX2>,
         anchor: anchorCall, 

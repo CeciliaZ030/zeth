@@ -66,6 +66,7 @@ pub trait Preflight<E: TxEssence> {
     ) -> Result<Data<E>>;
 }
 
+#[cfg(not(feature = "taiko"))]
 /// Implements the [Preflight] trait for all compatible [BlockBuilderStrategy]s.
 impl<N: BlockBuilderStrategy> Preflight<N::TxEssence> for N
 where

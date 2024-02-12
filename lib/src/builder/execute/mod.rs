@@ -23,7 +23,7 @@ use super::BlockBuilder;
 pub(super) mod ethereum;
 #[cfg(feature = "optimism")]
 pub(super) mod optimism;
-// #[cfg(feature = "taiko")]
+#[cfg(feature = "taiko")]
 pub(super) mod taiko;
 
 pub trait TxExecStrategy<E: TxEssence> {

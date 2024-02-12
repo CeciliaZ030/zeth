@@ -317,7 +317,7 @@ impl Preflight<EthereumTxEssence> for TaikoStrategy {
         let mut builder = BlockBuilder::new(&chain_spec, input)
             .with_db(provider_db)
             .prepare_header::<EthHeaderPrepStrategy>()?
-            .execute_transactions::<TkoTxExecStrategy::TxExecStrategy>()?;
+            .execute_transactions::<TkoTxExecStrategy>()?;
         let provider_db = builder.mut_db().unwrap();
 
         info!("Gathering inclusion proofs ...");

@@ -22,7 +22,7 @@ use zeth_primitives::{
 
 #[cfg(feature = "optimism")]
 pub use self::execute::optimism::OpTxExecStrategy;
-// #[cfg(feature = "taiko")]
+#[cfg(feature = "taiko")]
 pub use self::execute::taiko::TkoTxExecStrategy;
 use crate::{
     builder::{
@@ -149,9 +149,9 @@ impl BlockBuilderStrategy for OptimismStrategy {
 }
 
 /// The [BlockBuilderStrategy] for building an Optimism block.
-// #[cfg(feature = "taiko")]
+#[cfg(feature = "taiko")]
 pub struct TaikoStrategy {}
-// #[cfg(feature = "taiko")]
+#[cfg(feature = "taiko")]
 impl BlockBuilderStrategy for TaikoStrategy {
     type TxEssence = EthereumTxEssence;
     type DbInitStrategy = MemDbInitStrategy;

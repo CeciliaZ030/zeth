@@ -31,6 +31,7 @@ serde_json = "1.0"
 
 [features]
 default = ["taiko"]
-taiko = []
+taiko = ["revm-primitives/taiko"]
+optimism = ["revm-primitives/optimism"]
 ethers = ["dep:ethers-core"]
 revm = ["dep:revm-primitives"]
