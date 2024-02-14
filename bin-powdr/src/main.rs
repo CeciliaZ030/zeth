@@ -1,13 +1,10 @@
-use powdr::number::GoldilocksField;
 use powdr::riscv::{compile_rust, CoProcessors};
-use powdr::pipeline::{
-    pipeline::Pipeline,
-    test_util::verify_pipeline
-};
+use powdr::GoldilocksField;
+use powdr::{pipeline::test_util::verify_pipeline, Pipeline};
 use std::path::{Path, PathBuf};
 
 // Step1: set PILCOM to path (https://github.com/0xPolygonHermez/pilcom)
-// Step2: cargo run --package bin-powdr --bin bin-powdr --all-features 
+// Step2: cargo run --package bin-powdr --bin bin-powdr --all-features
 ///
 /// Note:
 /// revm dependencies located in workspace as well as in the guest-powdr/Cargo.toml
@@ -28,10 +25,11 @@ fn main() {
     .unwrap();
     println!("Compilation done.");
     println!("Creating pipeline...");
-    let pipeline: Pipeline<GoldilocksField> =
-        Pipeline::default().from_asm_string(asm_contents, Some(PathBuf::from(asm_file_path)));
+    let pipeline: Pipeline<GoldilocksField> = Pipeline::default()
+        .from_asm_string(asm_contents, Some(PathBuf::from(asm_file_path)))
+        .with_prover_inputs(vec![]);
     println!("Pipeline done.");
     println!("Verifying pipeline...");
-    verify_pipeline(pipeline, Vec::new(), Vec::new());
+    verify_pipeline(pipeline);
     println!("Verification done.");
 }
