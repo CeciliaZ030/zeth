@@ -15,17 +15,18 @@
 use std::{path::PathBuf, str::FromStr};
 
 use assert_cmd::Command;
-use risc0_zkvm::{serde::to_vec, Executor, ExecutorEnv, FileSegmentRef};
+use risc0_zkvm::{ExecutorEnv, ExecutorImpl, FileSegmentRef};
 use rstest::rstest;
 use tempfile::tempdir;
 use zeth_guests::ETH_BLOCK_ELF;
 use zeth_lib::{
-    block_builder::EthereumStrategyBundle, consts::ETH_MAINNET_CHAIN_SPEC, input::Input,
+    builder::EthereumStrategy, consts::ETH_MAINNET_CHAIN_SPEC, host::preflight::Preflight,
+    input::Input,
 };
 use zeth_primitives::{transactions::ethereum::EthereumTxEssence, trie::MptNodeData};
 
 #[rstest]
-fn block_cli_ethereum(#[files("testdata/ethereum/*.json.gz")] path: PathBuf) {
+fn zeth_ethereum(#[files("testdata/ethereum/*.json.gz")] path: PathBuf) {
     let block_no = file_prefix(&path);
 
     Command::cargo_bin("zeth")
@@ -35,21 +36,34 @@ fn block_cli_ethereum(#[files("testdata/ethereum/*.json.gz")] path: PathBuf) {
         .success();
 }
 
+// #[rstest]
+// #[case(109279674, 6)]
+// fn derive_optimism(#[case] op_block_no: u64, #[case] op_blocks: u64) {
+//     Command::cargo_bin("op-derive")
+//         .unwrap()
+//         .args([
+//             "--cache=testdata/derivation",
+//             &format!("--op-block-no={}", op_block_no),
+//             &format!("--op-blocks={}", op_blocks),
+//         ])
+//         .assert()
+//         .success();
+// }
+
 #[rstest]
 fn empty_blocks(#[files("testdata/ethereum/*.json.gz")] path: PathBuf) {
     let block_no = u64::from_str(file_prefix(&path)).unwrap();
     // Set block cache directory
-    let rpc_cache = Some(format!("testdata/ethereum/{}.json.gz", block_no));
-    // Fetch all of the initial data
-    let init = zeth_lib::host::get_initial_data::<EthereumStrategyBundle>(
-        ETH_MAINNET_CHAIN_SPEC.clone(),
-        rpc_cache,
-        None,
-        block_no,
-    )
-    .expect("Could not init");
+    let rpc_cache = Some(PathBuf::from(format!(
+        "testdata/ethereum/{}.json.gz",
+        block_no
+    )));
+    // Fetch all of the preflight data
+    let init =
+        EthereumStrategy::run_preflight(ETH_MAINNET_CHAIN_SPEC.clone(), rpc_cache, None, block_no)
+            .expect("Could not init");
     // Create input object
-    let mut input: Input<EthereumTxEssence> = init.clone().into();
+    let mut input: Input<EthereumTxEssence> = init.clone().try_into().unwrap();
     // Take out transaction and withdrawal execution data
     input.transactions = Default::default();
     input.withdrawals = Default::default();
@@ -61,10 +75,11 @@ fn empty_blocks(#[files("testdata/ethereum/*.json.gz")] path: PathBuf) {
     let env = ExecutorEnv::builder()
         .session_limit(None)
         .segment_limit_po2(20)
-        .add_input(&to_vec(&input).unwrap())
+        .write(&input)
+        .unwrap()
         .build()
         .unwrap();
-    let mut exec = Executor::from_elf(env, ETH_BLOCK_ELF).unwrap();
+    let mut exec = ExecutorImpl::from_elf(env, ETH_BLOCK_ELF).unwrap();
     // Run Executor
     let segment_dir = tempdir().unwrap();
     let session = exec

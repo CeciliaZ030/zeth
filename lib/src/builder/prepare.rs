@@ -19,7 +19,7 @@ use revm::{Database, DatabaseCommit};
 use zeth_primitives::{block::Header, transactions::TxEssence, U256};
 
 use crate::{
-    block_builder::BlockBuilder,
+    builder::BlockBuilder,
     consts::{Eip1559Constants, GAS_LIMIT_BOUND_DIVISOR, MAX_EXTRA_DATA_BYTES, MIN_GAS_LIMIT, ONE},
 };
 
@@ -27,7 +27,7 @@ pub trait HeaderPrepStrategy {
     fn prepare_header<D, E>(block_builder: BlockBuilder<D, E>) -> Result<BlockBuilder<D, E>>
     where
         D: Database + DatabaseCommit,
-        <D as Database>::Error: Debug,
+        <D as Database>::Error: core::fmt::Debug,
         E: TxEssence;
 }
 
@@ -72,7 +72,7 @@ impl HeaderPrepStrategy for EthHeaderPrepStrategy {
         }
         // Validate extra data
         let extra_data_bytes = block_builder.input.extra_data.len();
-        if extra_data_bytes >= MAX_EXTRA_DATA_BYTES {
+        if extra_data_bytes > MAX_EXTRA_DATA_BYTES {
             bail!(
                 "Invalid extra data: expected <= {}, got {}",
                 MAX_EXTRA_DATA_BYTES,
@@ -107,14 +107,13 @@ impl HeaderPrepStrategy for EthHeaderPrepStrategy {
 }
 
 /// Base fee for next block. [EIP-1559](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1559.md) spec
-#[inline(always)]
-pub fn derive_base_fee(parent: &Header, eip_1559_constants: &Eip1559Constants) -> Result<U256> {
+fn derive_base_fee(parent: &Header, eip_1559_constants: &Eip1559Constants) -> Result<U256> {
     let parent_gas_target = parent.gas_limit / eip_1559_constants.elasticity_multiplier;
 
     match parent.gas_used.cmp(&parent_gas_target) {
-        std::cmp::Ordering::Equal => Ok(parent.base_fee_per_gas),
+        core::cmp::Ordering::Equal => Ok(parent.base_fee_per_gas),
 
-        std::cmp::Ordering::Greater => {
+        core::cmp::Ordering::Greater => {
             let gas_used_delta = parent.gas_used - parent_gas_target;
             let base_fee_delta = ONE
                 .max(
@@ -128,7 +127,7 @@ pub fn derive_base_fee(parent: &Header, eip_1559_constants: &Eip1559Constants) -
             Ok(parent.base_fee_per_gas + base_fee_delta)
         }
 
-        std::cmp::Ordering::Less => {
+        core::cmp::Ordering::Less => {
             let gas_used_delta = parent_gas_target - parent.gas_used;
             let base_fee_delta = (parent.base_fee_per_gas * gas_used_delta
                 / parent_gas_target

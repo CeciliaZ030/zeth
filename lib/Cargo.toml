@@ -4,26 +4,28 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0"
-ethers-core = { version = "2.0", features = ["optimism"] }
+alloy-sol-types = {version = "0.5.4", default-features = false}
+anyhow = { version = "1.0", default-features = false }
 hashbrown = { workspace = true }
-once_cell = "1.18"
+once_cell = {version = "1.18", default_features = false}
+
 revm = { workspace = true }
 ruint = { version = "1.10", default-features = false }
-serde = "1.0"
-thiserror = "1.0"
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+serde = { version = "1.0", default-features = false, features = ["alloc"] }
+# thiserror = "1.0"
 zeth-primitives = { path = "../primitives", features = ["revm"] }
 
 [target.'cfg(not(target_os = "zkvm"))'.dependencies]
 chrono = { version = "0.4", default-features = false }
-ethers-providers = { version = "2.0", features = ["optimism"] }
-flate2 = "1.0.26"
+# ethers-providers = { version = "2.0", features = ["optimism"] }
+# flate2 = "1.0.26"
 log = "0.4"
-serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-serde_with = "3.0"
-tokio = { version = "1.23", features = ["full"] }
-zeth-primitives = { path = "../primitives", features = ["revm", "ethers"] }
+# serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
+# serde_with = "3.0"
+# tokio = { version = "1.23", features = ["full"] }
+zeth-primitives = { path = "../primitives", features = ["revm"] }
 
 [dev-dependencies]
-bincode = "1.3"
-serde_with = "3.1"
+# bincode = "1.3"
+# serde_with = "3.1"

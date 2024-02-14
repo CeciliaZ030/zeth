@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, path::PathBuf};
 
-use anyhow::{anyhow, Result};
-use ethers_core::types::{Block, Bytes, EIP1186ProofResponse, Transaction, H160, H256, U256};
+use anyhow::{anyhow, Context, Result};
+use ethers_core::types::{
+    Block, Bytes, EIP1186ProofResponse, Transaction, TransactionReceipt, H160, H256, U256,
+};
 use serde::{Deserialize, Serialize};
 
 pub mod cached_rpc_provider;
@@ -52,6 +54,7 @@ pub trait Provider: Send {
 
     fn get_full_block(&mut self, query: &BlockQuery) -> Result<Block<Transaction>>;
     fn get_partial_block(&mut self, query: &BlockQuery) -> Result<Block<H256>>;
+    fn get_block_receipts(&mut self, query: &BlockQuery) -> Result<Vec<TransactionReceipt>>;
     fn get_proof(&mut self, query: &ProofQuery) -> Result<EIP1186ProofResponse>;
     fn get_transaction_count(&mut self, query: &AccountQuery) -> Result<U256>;
     fn get_balance(&mut self, query: &AccountQuery) -> Result<U256>;
@@ -62,6 +65,7 @@ pub trait Provider: Send {
 pub trait MutProvider: Provider {
     fn insert_full_block(&mut self, query: BlockQuery, val: Block<Transaction>);
     fn insert_partial_block(&mut self, query: BlockQuery, val: Block<H256>);
+    fn insert_block_receipts(&mut self, query: BlockQuery, val: Vec<TransactionReceipt>);
     fn insert_proof(&mut self, query: ProofQuery, val: EIP1186ProofResponse);
     fn insert_transaction_count(&mut self, query: AccountQuery, val: U256);
     fn insert_balance(&mut self, query: AccountQuery, val: U256);
@@ -69,8 +73,9 @@ pub trait MutProvider: Provider {
     fn insert_storage(&mut self, query: StorageQuery, val: H256);
 }
 
-pub fn new_file_provider(file_path: String) -> Result<Box<dyn Provider>> {
-    let provider = file_provider::FileProvider::read_from_file(file_path)?;
+pub fn new_file_provider(file_path: PathBuf) -> Result<Box<dyn Provider>> {
+    let provider = file_provider::FileProvider::from_file(&file_path)
+        .with_context(|| format!("invalid cache file: {}", file_path.display()))?;
 
     Ok(Box::new(provider))
 }
@@ -81,14 +86,14 @@ pub fn new_rpc_provider(rpc_url: String) -> Result<Box<dyn Provider>> {
     Ok(Box::new(provider))
 }
 
-pub fn new_cached_rpc_provider(cache_path: String, rpc_url: String) -> Result<Box<dyn Provider>> {
+pub fn new_cached_rpc_provider(cache_path: PathBuf, rpc_url: String) -> Result<Box<dyn Provider>> {
     let provider = cached_rpc_provider::CachedRpcProvider::new(cache_path, rpc_url)?;
 
     Ok(Box::new(provider))
 }
 
 pub fn new_provider(
-    cache_path: Option<String>,
+    cache_path: Option<PathBuf>,
     rpc_url: Option<String>,
 ) -> Result<Box<dyn Provider>> {
     match (cache_path, rpc_url) {

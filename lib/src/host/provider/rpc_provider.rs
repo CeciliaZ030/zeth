@@ -13,20 +13,23 @@
 // limitations under the License.
 
 use anyhow::{anyhow, Result};
-use ethers_core::types::{Block, Bytes, EIP1186ProofResponse, Transaction, H256, U256};
-use ethers_providers::{Http, Middleware};
+use ethers_core::types::{
+    Block, Bytes, EIP1186ProofResponse, Transaction, TransactionReceipt, H256, U256,
+};
+use ethers_providers::{Http, Middleware, RetryClient};
 use log::info;
 
 use super::{AccountQuery, BlockQuery, ProofQuery, Provider, StorageQuery};
 
 pub struct RpcProvider {
-    http_client: ethers_providers::Provider<Http>,
+    http_client: ethers_providers::Provider<RetryClient<Http>>,
     tokio_handle: tokio::runtime::Handle,
 }
 
 impl RpcProvider {
     pub fn new(rpc_url: String) -> Result<Self> {
-        let http_client = ethers_providers::Provider::<Http>::try_from(&rpc_url)?;
+        let http_client =
+            ethers_providers::Provider::<RetryClient<Http>>::new_client(&rpc_url, 3, 500)?;
         let tokio_handle = tokio::runtime::Handle::current();
 
         Ok(RpcProvider {
@@ -65,6 +68,16 @@ impl Provider for RpcProvider {
             Some(out) => Ok(out),
             None => Err(anyhow!("No data for {:?}", query)),
         }
+    }
+
+    fn get_block_receipts(&mut self, query: &BlockQuery) -> Result<Vec<TransactionReceipt>> {
+        info!("Querying RPC for block receipts: {:?}", query);
+
+        let response = self
+            .tokio_handle
+            .block_on(async { self.http_client.get_block_receipts(query.block_no).await })?;
+
+        Ok(response)
     }
 
     fn get_proof(&mut self, query: &ProofQuery) -> Result<EIP1186ProofResponse> {

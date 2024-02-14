@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{fmt::Debug, mem::take};
+use core::{fmt::Debug, mem::take};
 
 use anyhow::{anyhow, bail, Context};
 #[cfg(not(target_os = "zkvm"))]
@@ -32,11 +32,11 @@ use zeth_primitives::{
     Bloom, RlpBytes,
 };
 
+use super::TxExecStrategy;
 use crate::{
-    block_builder::BlockBuilder,
+    builder::BlockBuilder,
     consts,
     consts::{GWEI_TO_WEI, MIN_SPEC_ID},
-    execution::TxExecStrategy,
     guest_mem_forget,
 };
 
@@ -116,7 +116,8 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
             // verify the transaction signature
             let tx_from = tx
                 .recover_from()
-                .with_context(|| format!("Error recovering address for transaction {}", tx_no))?;
+                .unwrap();
+                //.with_context(|| format!("Error recovering address for transaction {}", tx_no))?;
 
             #[cfg(not(target_os = "zkvm"))]
             {
@@ -160,10 +161,12 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
             let trie_key = tx_no.to_rlp();
             tx_trie
                 .insert_rlp(&trie_key, tx)
-                .context("failed to insert transaction")?;
+                .unwrap();
+                //.context("failed to insert transaction")?;
             receipt_trie
                 .insert_rlp(&trie_key, receipt)
-                .context("failed to insert receipt")?;
+                .unwrap();
+                //.context("failed to insert receipt")?;
 
             // update account states
             #[cfg(not(target_os = "zkvm"))]
@@ -222,7 +225,8 @@ impl TxExecStrategy<EthereumTxEssence> for EthTxExecStrategy {
             // Add withdrawal to trie
             withdrawals_trie
                 .insert_rlp(&i.to_rlp(), withdrawal)
-                .context("failed to insert withdrawal")?;
+                .unwrap();
+                //.context("failed to insert withdrawal")?;
         }
 
         // Update result header with computed values

@@ -1,0 +1,20 @@
+[package]
+name = "guest-powdr-std"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "guest-powdr-std"
+path = "src/lib.rs"
+
+[dependencies]
+zeth-lib = { path = "../lib", default-features = false }
+zeth-primitives = { path = "../primitives", features = ["revm"] }
+revm = { workspace = true }
+ruint = { version = "1.10", default-features = false }
+# powdr_riscv_rt = { git = "https://github.com/powdr-labs/powdr", branch = "continuations-data-input" }
+
+# TODO: we need to add this for compatibility reasons until we're able to update the nightly we use for riscv compilation
+ahash = { version = "=0.8.6", default-features = false }

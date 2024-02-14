@@ -11,12 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+use alloy_sol_types;
+
 
 use core::mem;
 
 use anyhow::{bail, Result};
 use hashbrown::HashMap;
-use revm::primitives::{AccountInfo, Bytecode, B256};
+use revm::{
+    primitives::{AccountInfo, Bytecode, B256},
+    Database, DatabaseCommit,
+};
 use zeth_primitives::{
     keccak::{keccak, KECCAK_EMPTY},
     transactions::TxEssence,
@@ -25,28 +30,28 @@ use zeth_primitives::{
 };
 
 use crate::{
-    block_builder::BlockBuilder,
+    builder::BlockBuilder,
     consts::MAX_BLOCK_HASH_AGE,
     guest_mem_forget,
     mem_db::{AccountState, DbAccount, MemDb},
 };
 
-pub trait DbInitStrategy<E: TxEssence> {
-    type Database;
-
-    fn initialize_database(
-        block_builder: BlockBuilder<Self::Database, E>,
-    ) -> Result<BlockBuilder<Self::Database, E>>;
+pub trait DbInitStrategy<D>
+where
+    D: Database + DatabaseCommit,
+    <D as Database>::Error: core::fmt::Debug,
+{
+    fn initialize_database<E>(block_builder: BlockBuilder<D, E>) -> Result<BlockBuilder<D, E>>
+    where
+        E: TxEssence;
 }
 
 pub struct MemDbInitStrategy {}
 
-impl<E: TxEssence> DbInitStrategy<E> for MemDbInitStrategy {
-    type Database = MemDb;
-
-    fn initialize_database(
-        mut block_builder: BlockBuilder<Self::Database, E>,
-    ) -> Result<BlockBuilder<Self::Database, E>> {
+impl DbInitStrategy<MemDb> for MemDbInitStrategy {
+    fn initialize_database<E: TxEssence>(
+        mut block_builder: BlockBuilder<MemDb, E>,
+    ) -> Result<BlockBuilder<MemDb, E>> {
         // Verify state trie root
         if block_builder.input.parent_state_trie.hash()
             != block_builder.input.parent_header.state_root
@@ -74,7 +79,7 @@ impl<E: TxEssence> DbInitStrategy<E> for MemDbInitStrategy {
             let state_account = block_builder
                 .input
                 .parent_state_trie
-                .get_rlp::<StateAccount>(&keccak(address))?
+                .get_rlp::<StateAccount>(&keccak(address)).unwrap()
                 .unwrap_or_default();
             // Verify storage trie root
             if storage_trie.hash() != state_account.storage_root {
@@ -99,7 +104,7 @@ impl<E: TxEssence> DbInitStrategy<E> for MemDbInitStrategy {
             let mut storage = HashMap::with_capacity(slots.len());
             for slot in slots {
                 let value: zeth_primitives::U256 = storage_trie
-                    .get_rlp(&keccak(slot.to_be_bytes::<32>()))?
+                    .get_rlp(&keccak(slot.to_be_bytes::<32>())).unwrap()
                     .unwrap_or_default();
                 storage.insert(slot, value);
             }

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{fmt::Debug, mem::take, str::FromStr};
+use core::{fmt::Debug, mem::take, str::FromStr};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, /* Context, */ Result};
 #[cfg(not(target_os = "zkvm"))]
 use log::debug;
 use revm::{
@@ -32,18 +32,21 @@ use zeth_primitives::{
     trie::MptNode,
     Bloom, RlpBytes,
 };
+extern crate alloc;
+use alloc::vec;
+use alloc::vec::Vec;
 
+
+use super::{
+    ethereum::{fill_eth_tx_env, increase_account_balance},
+    TxExecStrategy,
+};
 use crate::{
-    block_builder::BlockBuilder,
+    builder::BlockBuilder,
     consts,
     consts::{GWEI_TO_WEI, MIN_SPEC_ID},
-    execution::{
-        ethereum::{fill_eth_tx_env, increase_account_balance},
-        TxExecStrategy,
-    },
     guest_mem_forget,
 };
-
 pub struct OpTxExecStrategy {}
 
 impl TxExecStrategy<OptimismTxEssence> for OpTxExecStrategy {
@@ -144,7 +147,8 @@ impl TxExecStrategy<OptimismTxEssence> for OpTxExecStrategy {
             // verify the transaction signature
             let tx_from = tx
                 .recover_from()
-                .with_context(|| format!("Error recovering address for transaction {}", tx_no))?;
+                .unwrap();
+                //.with_context(|| format!("Error recovering address for transaction {}", tx_no))?;
 
             #[cfg(not(target_os = "zkvm"))]
             {
@@ -295,10 +299,12 @@ impl TxExecStrategy<OptimismTxEssence> for OpTxExecStrategy {
             let trie_key = tx_no.to_rlp();
             tx_trie
                 .insert_rlp(&trie_key, tx)
-                .context("failed to insert transaction")?;
+                .unwrap();
+                //.context("failed to insert transaction")?;
             receipt_trie
                 .insert_rlp(&trie_key, receipt)
-                .context("failed to insert receipt")?;
+                .unwrap();
+                //.context("failed to insert receipt")?;
         }
 
         let mut db = evm.take_db();
@@ -339,7 +345,8 @@ impl TxExecStrategy<OptimismTxEssence> for OpTxExecStrategy {
             // Add withdrawal to trie
             withdrawals_trie
                 .insert_rlp(&i.to_rlp(), withdrawal)
-                .context("failed to insert withdrawal")?;
+                .unwrap();
+                //.context("failed to insert withdrawal")?;
         }
 
         // Update result header with computed values

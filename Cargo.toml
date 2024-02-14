@@ -2,7 +2,9 @@
 resolver = "2"
 members = [
     "guests",
-    "host",
+    "bin-powdr",
+    "guest-powdr-std",
+    # "host",
     "lib",
     "primitives",
     "testing/ef-tests"
@@ -23,8 +25,9 @@ lto = true
 opt-level = 3
 
 [workspace.dependencies]
-bonsai-sdk = "0.4"
+bonsai-sdk = "0.5"
 hashbrown = { version = "0.14", features = ["inline-more"] }
-risc0-build = "0.18"
-risc0-zkvm = { version = "0.18", default-features = false }
-revm = { version = "3.5", default-features = false, features = ["std", "serde", "optional_no_base_fee", "optional_balance_check"] }
+risc0-build = "0.19"
+risc0-zkvm = { version = "0.19", default-features = false }
+revm = { git = "https://github.com/powdr-labs/revm", branch = "serde-no-std", default-features = false, features = [ "serde" ] }
+revm-primitives = { git = "https://github.com/powdr-labs/revm.git", branch = "serde-no-std", package = "revm-primitives", default-features = false, features = [ "serde" ]}

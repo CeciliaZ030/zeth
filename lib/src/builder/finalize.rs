@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use core::mem;
+
 use anyhow::Result;
-use hashbrown::HashMap;
-use revm::primitives::Address;
+use revm::{Database, DatabaseCommit};
 use zeth_primitives::{
     block::Header,
     keccak::keccak,
@@ -24,42 +25,34 @@ use zeth_primitives::{
 };
 
 use crate::{
-    block_builder::BlockBuilder,
+    builder::BlockBuilder,
     guest_mem_forget,
     mem_db::{AccountState, MemDb},
 };
 
-pub trait BlockBuildStrategy<E: TxEssence> {
-    type Database;
-    type Output;
-
-    fn build(block_builder: BlockBuilder<Self::Database, E>) -> Result<Self::Output>;
+pub trait BlockFinalizeStrategy<D>
+where
+    D: Database + DatabaseCommit,
+    <D as Database>::Error: core::fmt::Debug,
+{
+    fn finalize<E>(block_builder: BlockBuilder<D, E>) -> Result<(Header, MptNode)>
+    where
+        E: TxEssence;
 }
 
-pub struct BuildFromMemDbStrategy {}
+pub struct MemDbBlockFinalizeStrategy {}
 
-impl BuildFromMemDbStrategy {
-    pub fn build_header<E: TxEssence>(
-        debug_storage_tries: &mut Option<HashMap<Address, MptNode>>,
+impl BlockFinalizeStrategy<MemDb> for MemDbBlockFinalizeStrategy {
+    fn finalize<E: TxEssence>(
         mut block_builder: BlockBuilder<MemDb, E>,
-    ) -> Result<Header> {
-        let db = block_builder.db.as_ref().unwrap();
+    ) -> Result<(Header, MptNode)> {
+        let db = block_builder.db.take().expect("DB not initialized");
 
         // apply state updates
-        let state_trie = &mut block_builder.input.parent_state_trie;
+        let mut state_trie = mem::take(&mut block_builder.input.parent_state_trie);
         for (address, account) in &db.accounts {
             // if the account has not been touched, it can be ignored
             if account.state == AccountState::None {
-                if let Some(map) = debug_storage_tries {
-                    let storage_root = block_builder
-                        .input
-                        .parent_storage
-                        .get(address)
-                        .unwrap()
-                        .0
-                        .clone();
-                    map.insert(*address, storage_root);
-                }
                 continue;
             }
 
@@ -68,7 +61,7 @@ impl BuildFromMemDbStrategy {
 
             // remove deleted accounts from the state trie
             if account.state == AccountState::Deleted {
-                state_trie.delete(&state_trie_index)?;
+                state_trie.delete(&state_trie_index)/*? */.unwrap();
                 continue;
             }
 
@@ -88,15 +81,10 @@ impl BuildFromMemDbStrategy {
                 for (key, value) in state_storage {
                     let storage_trie_index = keccak(key.to_be_bytes::<32>());
                     if value == &U256::ZERO {
-                        storage_trie.delete(&storage_trie_index)?;
+                        storage_trie.delete(&storage_trie_index)/*? */.unwrap();
                     } else {
-                        storage_trie.insert_rlp(&storage_trie_index, *value)?;
+                        storage_trie.insert_rlp(&storage_trie_index, *value)/*? */.unwrap();
                     }
-                }
-
-                // insert the storage trie for host debugging
-                if let Some(map) = debug_storage_tries {
-                    map.insert(*address, storage_trie.clone());
                 }
 
                 storage_trie.hash()
@@ -108,42 +96,16 @@ impl BuildFromMemDbStrategy {
                 storage_root,
                 code_hash: account.info.code_hash,
             };
-            state_trie.insert_rlp(&state_trie_index, state_account)?;
+            state_trie.insert_rlp(&state_trie_index, state_account)/*? */.unwrap();
         }
 
         // update result header with the new state root
-        let mut header = block_builder
-            .header
-            .take()
-            .expect("Header was not initialized");
+        let mut header = block_builder.header.take().expect("Header not initialized");
         header.state_root = state_trie.hash();
 
         // Leak memory, save cycles
         guest_mem_forget(block_builder);
 
-        Ok(header)
-    }
-}
-
-impl<E: TxEssence> BlockBuildStrategy<E> for BuildFromMemDbStrategy {
-    type Database = MemDb;
-    type Output = Header;
-
-    #[inline(always)]
-    fn build(block_builder: BlockBuilder<Self::Database, E>) -> Result<Self::Output> {
-        BuildFromMemDbStrategy::build_header(&mut None, block_builder)
-    }
-}
-
-pub struct DebugBuildFromMemDbStrategy {}
-
-impl<E: TxEssence> BlockBuildStrategy<E> for DebugBuildFromMemDbStrategy {
-    type Database = MemDb;
-    type Output = (Header, HashMap<Address, MptNode>);
-
-    fn build(block_builder: BlockBuilder<Self::Database, E>) -> Result<Self::Output> {
-        let mut storage_trace = Some(Default::default());
-        let header = BuildFromMemDbStrategy::build_header(&mut storage_trace, block_builder)?;
-        Ok((header, storage_trace.unwrap()))
+        Ok((header, state_trie))
     }
 }
