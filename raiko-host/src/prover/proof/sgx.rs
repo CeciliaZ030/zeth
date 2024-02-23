@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-pub async fn execute_sgx(ctx: &mut Context, req: &SgxRequest) -> Result<SgxResponse, String> {
+pub async fn execute_sgx(ctx: &Context, req: &SgxRequest) -> Result<SgxResponse, String> {
     let guest_path = guest_executable_path(&ctx.guest_path, SGX_PARENT_DIR);
     debug!("Guest path: {:?}", guest_path);
     let mut cmd = {
