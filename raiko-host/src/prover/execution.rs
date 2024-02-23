@@ -64,7 +64,7 @@ pub async fn execute(
             ProofRequest::Powdr(req) => {
                 let start = Instant::now();
                 let bid = req.block;
-                let resp = execute_powdr().await?;
+                let resp = execute_powdr(ctx, req).await?;
                 let time_elapsed = Instant::now().duration_since(start).as_millis() as i64;
                 todo!()
             }
