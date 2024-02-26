@@ -15,6 +15,7 @@ path = "src/main.rs"
 zeth-primitives = { path = "../../primitives", features = ["revm"] }
 zeth-lib = { path = "../../lib", features = ["taiko"] }
 powdr-riscv-runtime ={ git = "https://github.com/ceciliaz030/powdr", branch = "+nightly" }
+serde = { version = "1.0.197", default-features = false, features = ["alloc", "derive", "rc"] }
 
 
 [workspace]

@@ -4351,6 +4351,7 @@ dependencies = [
  "revm 3.5.0 (git+https://github.com/ceciliaz030/revm.git?branch=sync-taiko-v3.5)",
  "rstest",
  "serde",
+ "serde_cbor",
  "serde_json",
  "serde_with",
  "sp1-core",
