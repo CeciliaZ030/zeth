@@ -1,19 +1,19 @@
 use std::time::Instant;
 
+use driver_common::Driver;
+use powdr::PowdrDriver;
+
 use super::{
     context::Context,
     error::Result,
     prepare_input::prepare_input,
-    proof::{cache::Cache, powdr::execute_powdr, sgx::execute_sgx},
+    proof::{cache::Cache, sgx::execute_sgx},
     request::{ProofRequest, ProofResponse},
     utils::cache_file_path,
 };
 use crate::metrics::{inc_sgx_success, observe_input, observe_sgx_gen};
 #[cfg(feature = "succinct")]
 use crate::prover::proof::succinct::execute_sp1;
-
-// TODO! Petar - later import the Driver trait and other drivers
-// use driver-common::Driver;
 
 // use crate::rolling::prune_old_caches;
 
@@ -49,12 +49,12 @@ pub async fn execute(
     let result = async {
         // 1. load input data into cache path
         let start = Instant::now();
-        let _ = prepare_input(ctx, req.clone()).await?;
+        let input = prepare_input(ctx, req.clone()).await?;
         let elapsed = Instant::now().duration_since(start).as_millis() as i64;
         observe_input(elapsed);
         // 2. run proof
         // prune_old_caches(&ctx.cache_path, ctx.max_caches);
-        // TODO! Petar - each request type should be handled using the Driver trait
+        // TODO: Petar - each request type should be handled using the Driver trait
         match req {
             ProofRequest::Sgx(req) => {
                 let start = Instant::now();
@@ -67,9 +67,10 @@ pub async fn execute(
             }
             ProofRequest::Powdr(req) => {
                 let start = Instant::now();
-                let bid = req.block;
-                let resp = execute_powdr(ctx, req).await?;
-                let time_elapsed = Instant::now().duration_since(start).as_millis() as i64;
+                let _bid = req.block;
+                let driver = PowdrDriver::new("/raiko-guests/powdr/runtime".into())?;
+                let _resp = driver.execute(input).await?;
+                let _time_elapsed = Instant::now().duration_since(start).as_millis() as i64;
                 todo!()
             }
             ProofRequest::PseZk(_) => todo!(),

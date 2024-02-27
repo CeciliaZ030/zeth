@@ -2,7 +2,6 @@
 
 #[allow(dead_code)]
 pub mod cache;
-pub mod powdr;
 pub mod pse_zk;
 pub mod sgx;
 #[cfg(feature = "succinct")]
