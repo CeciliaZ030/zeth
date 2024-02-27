@@ -29,16 +29,6 @@ use crate::prover::{
     request::SgxRequest,
 };
 
-#[derive(Serialize, Default)]
-struct InputData {
-    host_args: HostArgs,
-    l2_chain_spec: ChainSpec,
-    testnet: String,
-    l2_block_no: u64,
-    graffiti: B256,
-    prover: Address,
-}
-
 pub async fn execute_powdr(ctx: &Context, req: &SgxRequest) -> Result<(), Error> {
     println!("Compiling Rust...");
     let (asm_file_path, asm_contents) = compile_rust(
@@ -63,22 +53,21 @@ pub async fn execute_powdr(ctx: &Context, req: &SgxRequest) -> Result<(), Error>
     let input = init_taiko(
         HostArgs {
             l1_cache: ctx.l1_cache_file.clone(),
-            l1_rpc: Some(req.l1_rpc),
+            l1_rpc: Some(req.l1_rpc.clone()),
             l2_cache: ctx.l2_cache_file.clone(),
-            l2_rpc: Some(req.l2_rpc),
+            l2_rpc: Some(req.l2_rpc.clone()),
         },
         TKO_MAINNET_CHAIN_SPEC.clone(),
         &ctx.l2_chain,
         req.block,
         req.graffiti,
         req.prover,
-    );
+    )?;
     println!("Inputs created.");
 
     println!("Adding prover inputs to pipeline...");
-    let prover_inputs = serde_cbor::to_vec(&input)
-        .unwrap_or_else(|| vec!["could not serialize inputs".to_string()]);
-    pipeline.add_data(42, &prover_inputs);
+    let prover_inputs = serde_cbor::to_vec(&input).expect("Could not serialize inputs");
+    let pipeline = pipeline.add_data(42, &prover_inputs);
 
     println!("Verifying pipeline...");
     verify_pipeline(pipeline);
