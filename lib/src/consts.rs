@@ -20,7 +20,6 @@ use alloc::{
     str::FromStr,
     string::{String, ToString},
 };
-use core::cell::{SyncUnsafeCell, UnsafeCell};
 
 use anyhow::bail;
 use once_cell::unsync::Lazy;

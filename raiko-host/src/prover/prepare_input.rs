@@ -5,9 +5,8 @@ use zeth_lib::{
     input::Input,
     taiko::{
         host::{init_taiko, HostArgs},
-        TaikoSystemInfo,
+        GuestInput,
     },
-    EthereumTxEssence,
 };
 
 use super::{
@@ -17,10 +16,7 @@ use super::{
 };
 
 /// prepare input data for guests
-pub async fn prepare_input(
-    ctx: &mut Context,
-    req: ProofRequest,
-) -> Result<(Input<EthereumTxEssence>, TaikoSystemInfo)> {
+pub async fn prepare_input(ctx: &mut Context, req: ProofRequest) -> Result<GuestInput> {
     match req {
         ProofRequest::Sgx(SgxRequest {
             block,

@@ -1,13 +1,13 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-
 use zeth_lib::{
     builder::{BlockBuilderStrategy, TaikoStrategy},
     consts::{ChainSpec, TKO_MAINNET_CHAIN_SPEC},
     taiko::{
         host::{init_taiko, HostArgs},
         protocol_instance::{assemble_protocol_instance, EvidenceType},
+        GuestInput,
     },
 };
 use zeth_primitives::{Address, B256};
@@ -20,7 +20,7 @@ pub fn main() {
     let graffiti = sp1_zkvm::io::read::<B256>();
     let prover = sp1_zkvm::io::read::<Address>();
 
-    let (input, sys_info) = init_taiko(
+    let GuestInput { input, sys_info } = init_taiko(
         host_args,
         l2_chain_spec,
         &testnet,

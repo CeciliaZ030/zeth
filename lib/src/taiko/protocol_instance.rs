@@ -2,9 +2,9 @@ use alloc::{format, vec::Vec};
 
 use alloy_primitives::{Address, TxHash, B256};
 use alloy_sol_types::SolValue;
-use anyhow::{anyhow, ensure, Result};
+use anyhow::{ensure, Result};
 use revm::primitives::SpecId;
-use zeth_primitives::{block::Header, keccak::keccak, transactions::EthereumTransaction};
+use zeth_primitives::{block::Header, keccak::keccak};
 
 use super::{consts::ANCHOR_GAS_LIMIT, BlockMetadata, EthDeposit, TaikoSystemInfo, Transition};
 use crate::consts::TKO_MAINNET_CHAIN_SPEC;

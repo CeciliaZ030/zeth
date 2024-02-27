@@ -13,13 +13,11 @@ use serde::Serialize;
 use zeth_lib::{
     builder::{BlockBuilderStrategy, TaikoStrategy},
     consts::TKO_MAINNET_CHAIN_SPEC,
-    input::Input,
     taiko::{
         host::{init_taiko, HostArgs},
         protocol_instance::{assemble_protocol_instance, EvidenceType},
-        TaikoSystemInfo,
+        GuestInput,
     },
-    EthereumTxEssence,
 };
 use zeth_primitives::{Address, B256};
 base64_serde_type!(Base64Standard, base64::engine::general_purpose::STANDARD);
@@ -177,7 +175,7 @@ async fn get_data_to_sign(
     block_no: u64,
     new_pubkey: Address,
 ) -> Result<B256> {
-    let (input, sys_info) = parse_to_init(
+    let GuestInput { sys_info, input } = parse_to_init(
         testnet,
         path_str,
         l1_blocks_path,
@@ -200,8 +198,8 @@ async fn parse_to_init(
     prover: Address,
     block_no: u64,
     graffiti: B256,
-) -> Result<(Input<EthereumTxEssence>, TaikoSystemInfo), Error> {
-    let (input, sys_info) = tokio::task::spawn_blocking(move || {
+) -> Result<GuestInput, Error> {
+    tokio::task::spawn_blocking(move || {
         init_taiko(
             HostArgs {
                 l1_cache: PathBuf::from_str(&l1_blocks_path).ok(),
@@ -217,8 +215,7 @@ async fn parse_to_init(
         )
         .expect("Init taiko failed")
     })
-    .await?;
-    Ok((input, sys_info))
+    .await
 }
 
 fn save_attestation_user_report_data(pubkey: Address) -> Result<()> {

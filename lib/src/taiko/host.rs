@@ -11,7 +11,7 @@ use zeth_primitives::{
     block::Header, ethers::from_ethers_h256, transactions::ethereum::EthereumTxEssence,
 };
 
-use super::{provider::TaikoProvider, TaikoSystemInfo};
+use super::{provider::TaikoProvider, GuestInput, TaikoSystemInfo};
 use crate::{
     builder::{prepare::EthHeaderPrepStrategy, BlockBuilder, TaikoStrategy, TkoTxExecStrategy},
     consts::ChainSpec,
@@ -39,7 +39,7 @@ pub fn init_taiko(
     l2_block_no: u64,
     graffiti: B256,
     prover: Address,
-) -> Result<(Input<EthereumTxEssence>, TaikoSystemInfo)> {
+) -> Result<GuestInput> {
     let mut tp = TaikoProvider::new(
         args.l1_cache.clone(),
         args.l1_rpc.clone(),
@@ -62,7 +62,7 @@ pub fn init_taiko(
         .try_into()
         .context("invalid preflight data")?;
 
-    Ok((input, sys_info))
+    Ok(GuestInput { input, sys_info })
 }
 
 pub fn derive_sys_info(

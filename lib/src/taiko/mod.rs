@@ -4,7 +4,11 @@ use alloy_primitives::{Address, B256};
 use alloy_sol_types::{sol, SolCall};
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-use zeth_primitives::{block::Header, transactions::TxEssence, withdrawal::Withdrawal};
+use zeth_primitives::{
+    block::Header, transactions::ethereum::EthereumTxEssence, withdrawal::Withdrawal,
+};
+
+use crate::input::Input;
 
 pub mod consts;
 // #[cfg(all(feature = "std", not(target_os = "zkvm")))]
@@ -87,7 +91,7 @@ sol! {
     function proveBlock(uint64 blockId, bytes calldata input) {}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TaikoSystemInfo {
     pub l1_hash: B256,
     pub l1_height: u64,
@@ -100,4 +104,13 @@ pub struct TaikoSystemInfo {
     pub block_proposed: BlockProposed,
     pub l1_next_block: Header,
     pub l2_block: Header,
+}
+
+/// The Input struct for every Taiko guest prover
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GuestInput {
+    /// The system info for the Taiko guest prover
+    pub sys_info: TaikoSystemInfo,
+    /// The initial data required to build a block
+    pub input: Input<EthereumTxEssence>,
 }

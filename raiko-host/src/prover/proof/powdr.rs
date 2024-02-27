@@ -15,7 +15,10 @@ use tracing::{debug, info};
 use zeth_lib::{
     consts::{ChainSpec, TKO_MAINNET_CHAIN_SPEC},
     input::Input,
-    taiko::{host::HostArgs, TaikoSystemInfo},
+    taiko::{
+        host::{init_taiko, HostArgs},
+        TaikoSystemInfo,
+    },
     EthereumTxEssence,
 };
 use zeth_primitives::{Address, B256};
@@ -56,21 +59,25 @@ pub async fn execute_powdr(ctx: &Context, req: &SgxRequest) -> Result<(), Error>
         .with_prover_inputs(vec![]);
     println!("Pipeline done.");
 
-    println!("Passing inputs...");
-    let prover_inputs = serde_cbor::to_vec(&InputData {
-        host_args: HostArgs {
+    println!("Initializing Taiko to create prover inputs...");
+    let input = init_taiko(
+        HostArgs {
             l1_cache: ctx.l1_cache_file.clone(),
             l1_rpc: Some(req.l1_rpc),
             l2_cache: ctx.l2_cache_file.clone(),
             l2_rpc: Some(req.l2_rpc),
         },
-        l2_chain_spec: TKO_MAINNET_CHAIN_SPEC.clone(),
-        testnet: ctx.l2_chain,
-        l2_block_no: req.block,
-        graffiti: req.graffiti,
-        prover: req.prover,
-    })
-    .unwrap_or_else(|| vec!["could not serialize inputs".to_string()]);
+        TKO_MAINNET_CHAIN_SPEC.clone(),
+        &ctx.l2_chain,
+        req.block,
+        req.graffiti,
+        req.prover,
+    );
+    println!("Inputs created.");
+
+    println!("Adding prover inputs to pipeline...");
+    let prover_inputs = serde_cbor::to_vec(&input)
+        .unwrap_or_else(|| vec!["could not serialize inputs".to_string()]);
     pipeline.add_data(42, &prover_inputs);
 
     println!("Verifying pipeline...");
