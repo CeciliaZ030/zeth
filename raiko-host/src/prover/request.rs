@@ -2,8 +2,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DisplayFromStr};
 use zeth_primitives::{Address, B256};
 
-use super::proof::succinct::SP1Proof;
-
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[allow(clippy::large_enum_variant)]

@@ -39,6 +39,7 @@ thiserror = "1.0"
 powdr = { git = "https://github.com/ceciliaz030/powdr", branch = "+nightly" }
 sp1-core = { git = "https://github.com/succinctlabs/sp1.git" }
 serde_cbor = "0.11.2"
+driver-common = { version = "0.1.0", path = "../raiko-drivers/common" }
 
 [dev-dependencies]
 assert_cmd = "2.0"

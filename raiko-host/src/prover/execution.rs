@@ -8,10 +8,13 @@ use super::{
     request::{ProofRequest, ProofResponse},
     utils::cache_file_path,
 };
-use crate::{
-    metrics::{inc_sgx_success, observe_input, observe_sgx_gen},
-    prover::proof::succinct::execute_sp1,
-};
+use crate::metrics::{inc_sgx_success, observe_input, observe_sgx_gen};
+#[cfg(feature = "succinct")]
+use crate::prover::proof::succinct::execute_sp1;
+
+// TODO! Petar - later import the Driver trait and other drivers
+// use driver-common::Driver;
+
 // use crate::rolling::prune_old_caches;
 
 pub async fn execute(
@@ -51,6 +54,7 @@ pub async fn execute(
         observe_input(elapsed);
         // 2. run proof
         // prune_old_caches(&ctx.cache_path, ctx.max_caches);
+        // TODO! Petar - each request type should be handled using the Driver trait
         match req {
             ProofRequest::Sgx(req) => {
                 let start = Instant::now();
@@ -70,11 +74,15 @@ pub async fn execute(
             }
             ProofRequest::PseZk(_) => todo!(),
             ProofRequest::Succinct(req) => {
-                let start = Instant::now();
-                let bid = req.block;
-                let resp = execute_sp1(ctx, req).await?;
-                let time_elapsed = Instant::now().duration_since(start).as_millis() as i64;
-                Ok(ProofResponse::SP1(resp))
+                #[cfg(feature = "succinct")]
+                {
+                    let start = Instant::now();
+                    let bid = req.block;
+                    let resp = execute_sp1(ctx, req).await?;
+                    let time_elapsed = Instant::now().duration_since(start).as_millis() as i64;
+                    Ok(ProofResponse::SP1(resp))
+                }
+                todo!()
             }
         }
     }

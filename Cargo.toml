@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "lib",
     "primitives",
+    "raiko-drivers/common",
     # "raiko-guests/sgx",
     # "raiko-guests/risc0",
     # "raiko-guests/powdr",
