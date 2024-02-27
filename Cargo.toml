@@ -4,6 +4,7 @@ members = [
     "lib",
     "primitives",
     "raiko-drivers/common",
+    "raiko-drivers/powdr",
     # "raiko-guests/sgx",
     # "raiko-guests/risc0",
     # "raiko-guests/powdr",
@@ -15,7 +16,8 @@ members = [
 exclude = [
     "raiko-guests/sgx",
     "raiko-guests/risc0",
-    "raiko-guests/powdr",
+    "raiko-guests/powdr/artifact",
+    "raiko-guests/powdr/runtime",
     "raiko-guests/succinct",
 ]
 

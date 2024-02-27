@@ -479,6 +479,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 
 [[package]]
+name = "artifact"
+version = "0.1.0"
+dependencies = [
+ "powdr-riscv-runtime",
+ "serde",
+ "zeth-lib",
+ "zeth-primitives",
+]
+
+[[package]]
 name = "ascii-canvas"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3824,6 +3834,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "powdr"
+version = "0.1.0"
+dependencies = [
+ "driver-common",
+ "serde_cbor",
+ "tokio",
+]
+
+[[package]]
 name = "powdr-airgen"
 version = "0.1.0-alpha.1"
 source = "git+https://github.com/ceciliaz030/powdr?branch=+nightly#600d3d1ca6ee30b980604b5e057cccc272ae0b37"
@@ -4100,6 +4119,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "powdr-riscv-runtime"
+version = "0.1.0-alpha.1"
+source = "git+https://github.com/ceciliaz030/powdr?branch=+nightly#600d3d1ca6ee30b980604b5e057cccc272ae0b37"
+dependencies = [
+ "serde",
+ "serde_cbor",
+]
+
+[[package]]
 name = "powdr-schemas"
 version = "0.1.0-alpha.1"
 source = "git+https://github.com/ceciliaz030/powdr?branch=+nightly#600d3d1ca6ee30b980604b5e057cccc272ae0b37"
@@ -4356,7 +4384,7 @@ dependencies = [
  "lazy_static",
  "lru_time_cache",
  "once_cell",
- "powdr",
+ "powdr 0.1.0",
  "prometheus",
  "revm 3.5.0 (git+https://github.com/ceciliaz030/revm.git?branch=sync-taiko-v3.5)",
  "rstest",
@@ -4888,6 +4916,14 @@ name = "ruint-macro"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e666a5496a0b2186dbcd0ff6106e29e093c15591bde62c20d3842007c6978a09"
+
+[[package]]
+name = "runtime"
+version = "0.1.0"
+dependencies = [
+ "artifact",
+ "powdr 0.1.0-alpha.1",
+]
 
 [[package]]
 name = "rustc-demangle"
