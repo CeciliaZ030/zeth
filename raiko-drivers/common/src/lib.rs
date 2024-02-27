@@ -1,4 +1,5 @@
-use zeth_lib::taiko::GuestInput;
+pub use anyhow;
+pub use zeth_lib::taiko::GuestInput;
 
 /// A driver is a trait that defines the interface for a prover driver.
 /// The driver is responsible for handling the I/O between the host and the prover,
