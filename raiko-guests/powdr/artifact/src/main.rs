@@ -12,9 +12,11 @@ use zeth_lib::{
     },
 };
 
+pub const CHANNEL: u32 = 42;
+
 #[no_mangle]
 fn main() {
-    let GuestInput { input, sys_info } = get_data_serde::<GuestInput>(42);
+    let GuestInput { input, sys_info } = get_data_serde::<GuestInput>(CHANNEL);
 
     let (header, _mpt_node) = TaikoStrategy::build_from(&TKO_MAINNET_CHAIN_SPEC.clone(), input)
         .expect("Failed to build the resulting block");
