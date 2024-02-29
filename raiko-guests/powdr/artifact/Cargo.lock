@@ -97,6 +97,7 @@ checksum = "5ad32ce52e4161730f7098c077cd2ed6229b5804ccf99e5366be1ab72a98b4e1"
 name = "artifact"
 version = "0.1.0"
 dependencies = [
+ "common",
  "powdr-riscv-runtime",
  "serde",
  "zeth-lib",
@@ -219,6 +220,10 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
+name = "common"
+version = "0.1.0"
 
 [[package]]
 name = "const-hex"

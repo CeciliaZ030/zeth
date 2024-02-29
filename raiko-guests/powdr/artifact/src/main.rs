@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+use common::CHANNEL;
 use powdr_riscv_runtime::{self, coprocessors::get_data_serde};
 use zeth_lib::{
     builder::{BlockBuilderStrategy, TaikoStrategy},
@@ -11,8 +12,6 @@ use zeth_lib::{
         GuestInput,
     },
 };
-
-pub const CHANNEL: u32 = 42;
 
 #[no_mangle]
 fn main() {

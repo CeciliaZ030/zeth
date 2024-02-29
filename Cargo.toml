@@ -5,10 +5,6 @@ members = [
     "primitives",
     "raiko-drivers/common",
     "raiko-drivers/powdr",
-    # "raiko-guests/sgx",
-    # "raiko-guests/risc0",
-    # "raiko-guests/powdr",
-    # "raiko-guests/succinct",
     "raiko-host",
     "sgx-ra",
     "tests/*",
@@ -16,6 +12,7 @@ members = [
 exclude = [
     "raiko-guests/sgx",
     "raiko-guests/risc0",
+    "raiko-guests/powdr/common",
     "raiko-guests/powdr/artifact",
     "raiko-guests/powdr/runtime",
     "raiko-guests/succinct",

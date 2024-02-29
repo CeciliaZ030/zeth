@@ -1,10 +1,6 @@
-use std::{
-    env,
-    path::{Path, PathBuf},
-    str,
-};
+use std::{env, path::Path};
 
-use artifact::CHANNEL;
+use common::CHANNEL;
 use powdr::{
     pipeline::test_util::verify_pipeline,
     riscv::{compile_rust, CoProcessors},
@@ -12,9 +8,11 @@ use powdr::{
 };
 
 fn main() {
-    let input = env::args()
-        .next()
-        .map_or_else(|| panic!("Did not receive any input"), |s| s.as_bytes());
+    let mut args = env::args();
+    let input = args.next().map_or_else(
+        || panic!("Did not receive any input"),
+        |s| s.as_bytes().to_vec(),
+    );
 
     dbg!("Compiling Rust...");
     // TODO: Petar - this could probably be precompiled so that we don't have to compile a
@@ -33,8 +31,8 @@ fn main() {
     dbg!("Compilation done.");
 
     dbg!("Creating pipeline...");
-    let pipeline = Pipeline::<GoldilocksField>::default()
-        .from_asm_string(asm_contents, Some(PathBuf::from(asm_file_path)));
+    let pipeline =
+        Pipeline::<GoldilocksField>::default().from_asm_string(asm_contents, Some(asm_file_path));
     dbg!("Pipeline done.");
 
     dbg!("Adding prover inputs to pipeline...");
