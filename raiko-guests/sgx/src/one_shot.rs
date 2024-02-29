@@ -216,6 +216,7 @@ async fn parse_to_init(
         .expect("Init taiko failed")
     })
     .await
+    .map_err(|err| anyhow!("Failed to parse to init: {err}"))
 }
 
 fn save_attestation_user_report_data(pubkey: Address) -> Result<()> {
@@ -276,9 +277,9 @@ fn print_sgx_info() -> Result<()> {
 
 fn get_sgx_attestation_type() -> Result<String> {
     let mut attestation_type = String::new();
-    if !File::open(ATTESTATION_TYPE_DEVICE_FILE)
+    if File::open(ATTESTATION_TYPE_DEVICE_FILE)
         .and_then(|mut file| file.read_to_string(&mut attestation_type))
-        .is_ok()
+        .is_err()
     {
         bail!(
             "Cannot find `{}`; are you running under SGX, with remote attestation enabled?",
